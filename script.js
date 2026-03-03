@@ -1,7 +1,6 @@
 /* ========================================
-   INTELLEX 2026 — VIBRANT 3D SCENE
-   Morphing Icosahedron + Orbiting Spheres
-   + DNA Helix + Scroll-linked camera
+   INTELLEX 2026 — LIQUID AURORA THEME
+   Interactive Color Art Background
    ======================================== */
 
 (function () {
@@ -20,343 +19,318 @@
     function initAllAnimations() { initScrollReveal(); triggerHeroReveal(); }
 
     // ===================================
-    // 2. THREE.JS — VIBRANT 3D SCENE
+    // 2. LIQUID AURORA BACKGROUND
+    //    Metaballs + Aurora Waves + Mouse Trail
     // ===================================
     const container = document.getElementById('bg3d');
-    let scene, camera, renderer, clock;
-    let centerShape, dnaGroup;
-    let orbitingSpheres = [];
-    let mouseX = 0, mouseY = 0, tMouseX = 0, tMouseY = 0;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    container.appendChild(canvas);
 
-    function init3D() {
-        scene = new THREE.Scene();
+    let W, H;
+    let mouse = { x: -500, y: -500, trail: [] };
+    let time = 0;
+    let blobs = [];
+    let auroras = [];
+    let trailParticles = [];
 
-        camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 2000);
-        camera.position.set(0, 0, 300);
+    // HSL color cycling
+    let hueShift = 0;
 
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.setClearColor(0x000000, 0); // transparent — CSS gradient shows through
-        container.appendChild(renderer.domElement);
+    class GradientBlob {
+        constructor(i, total) {
+            this.reset(i, total);
+        }
+        reset(i, total) {
+            W = canvas.width; H = canvas.height;
+            this.x = Math.random() * W;
+            this.y = Math.random() * H;
+            this.radius = 150 + Math.random() * 250;
+            this.vx = (Math.random() - 0.5) * 1.5;
+            this.vy = (Math.random() - 0.5) * 1.5;
 
-        clock = new THREE.Clock();
+            // Vibrant base hues spread across spectrum
+            const hues = [0, 30, 60, 120, 180, 240, 280, 320]; // Red, orange, yellow, green, cyan, blue, purple, magenta
+            this.baseHue = hues[i % hues.length];
+            this.saturation = 85 + Math.random() * 15;
+            this.lightness = 55 + Math.random() * 15;
+            this.opacity = 0.4 + Math.random() * 0.2;
 
-        // Lights
-        const ambient = new THREE.AmbientLight(0xffffff, 0.4);
-        scene.add(ambient);
+            this.wobbleSpeedX = 0.002 + Math.random() * 0.003;
+            this.wobbleSpeedY = 0.002 + Math.random() * 0.003;
+            this.wobbleAmplitude = 30 + Math.random() * 50;
+            this.phaseX = Math.random() * Math.PI * 2;
+            this.phaseY = Math.random() * Math.PI * 2;
+            this.pulseSpeed = 0.005 + Math.random() * 0.01;
+            this.pulsePhase = Math.random() * Math.PI * 2;
+        }
 
-        const p1 = new THREE.PointLight(0xff6b6b, 2, 500);
-        p1.position.set(100, 100, 100);
-        scene.add(p1);
+        update(time) {
+            // Organic movement
+            this.x += this.vx + Math.sin(time * this.wobbleSpeedX + this.phaseX) * 0.8;
+            this.y += this.vy + Math.cos(time * this.wobbleSpeedY + this.phaseY) * 0.8;
 
-        const p2 = new THREE.PointLight(0x339af0, 2, 500);
-        p2.position.set(-100, -50, 150);
-        scene.add(p2);
+            // Bounce off edges softly
+            if (this.x < -this.radius) this.x = W + this.radius;
+            if (this.x > W + this.radius) this.x = -this.radius;
+            if (this.y < -this.radius) this.y = H + this.radius;
+            if (this.y > H + this.radius) this.y = -this.radius;
 
-        const p3 = new THREE.PointLight(0x845ef7, 1.5, 400);
-        p3.position.set(0, 150, -100);
-        scene.add(p3);
+            // Mouse attraction
+            const dx = mouse.x - this.x;
+            const dy = mouse.y - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 400) {
+                const force = (400 - dist) / 400;
+                this.x += dx * force * 0.005;
+                this.y += dy * force * 0.005;
+            }
 
-        createCenterShape();
-        createDNAHelix();
-        createOrbitingSpheres();
-        createFloatingCubes();
-        createParticleField();
+            // Pulsing radius
+            this.currentRadius = this.radius + Math.sin(time * this.pulseSpeed + this.pulsePhase) * 30;
 
-        animate3D();
-    }
+            // Shift hue over time
+            this.currentHue = (this.baseHue + hueShift) % 360;
+        }
 
-    // --- MORPHING CENTER ICOSAHEDRON ---
-    function createCenterShape() {
-        const geo = new THREE.IcosahedronGeometry(50, 4);
-        const originalPositions = geo.attributes.position.array.slice();
-
-        const mat = new THREE.MeshPhysicalMaterial({
-            color: 0xffffff,
-            metalness: 0.2,
-            roughness: 0.1,
-            transparent: true,
-            opacity: 0.15,
-            wireframe: false,
-            side: THREE.DoubleSide,
-        });
-
-        centerShape = new THREE.Mesh(geo, mat);
-        centerShape._originalPositions = originalPositions;
-        scene.add(centerShape);
-
-        // Wireframe overlay
-        const wireGeo = new THREE.IcosahedronGeometry(50, 2);
-        const wireMat = new THREE.MeshBasicMaterial({
-            color: 0xffffff,
-            wireframe: true,
-            transparent: true,
-            opacity: 0.12,
-        });
-        const wire = new THREE.Mesh(wireGeo, wireMat);
-        centerShape.add(wire);
-        centerShape._wire = wire;
-    }
-
-    // --- DNA DOUBLE HELIX ---
-    function createDNAHelix() {
-        dnaGroup = new THREE.Group();
-        const helixLength = 600;
-        const turns = 4;
-        const pointsPerTurn = 30;
-        const totalPoints = turns * pointsPerTurn;
-        const radius = 25;
-
-        const colors1 = [0xff6b6b, 0xf06595, 0xcc5de8, 0x845ef7, 0x5c7cfa, 0x339af0, 0x22b8cf, 0x20c997];
-        const colors2 = [0xffd43b, 0xffa94d, 0xff6b6b, 0xf06595, 0xcc5de8, 0x845ef7, 0x5c7cfa, 0x339af0];
-
-        for (let i = 0; i < totalPoints; i++) {
-            const t = i / totalPoints;
-            const angle = t * Math.PI * 2 * turns;
-            const y = (t - 0.5) * helixLength;
-
-            // Strand 1
-            const x1 = Math.cos(angle) * radius;
-            const z1 = Math.sin(angle) * radius;
-            const sphere1 = new THREE.Mesh(
-                new THREE.SphereGeometry(2, 8, 8),
-                new THREE.MeshBasicMaterial({
-                    color: colors1[i % colors1.length],
-                    transparent: true,
-                    opacity: 0.5
-                })
+        draw() {
+            const gradient = ctx.createRadialGradient(
+                this.x, this.y, 0,
+                this.x, this.y, this.currentRadius
             );
-            sphere1.position.set(x1, y, z1);
-            dnaGroup.add(sphere1);
+            const h = this.currentHue;
+            const s = this.saturation;
+            const l = this.lightness;
+            gradient.addColorStop(0, `hsla(${h}, ${s}%, ${l}%, ${this.opacity})`);
+            gradient.addColorStop(0.4, `hsla(${h + 15}, ${s}%, ${l - 5}%, ${this.opacity * 0.6})`);
+            gradient.addColorStop(0.7, `hsla(${h + 30}, ${s - 10}%, ${l - 10}%, ${this.opacity * 0.2})`);
+            gradient.addColorStop(1, `hsla(${h + 40}, ${s - 20}%, ${l - 15}%, 0)`);
 
-            // Strand 2
-            const x2 = Math.cos(angle + Math.PI) * radius;
-            const z2 = Math.sin(angle + Math.PI) * radius;
-            const sphere2 = new THREE.Mesh(
-                new THREE.SphereGeometry(2, 8, 8),
-                new THREE.MeshBasicMaterial({
-                    color: colors2[i % colors2.length],
-                    transparent: true,
-                    opacity: 0.5
-                })
-            );
-            sphere2.position.set(x2, y, z2);
-            dnaGroup.add(sphere2);
-
-            // Cross-links every N points
-            if (i % 4 === 0) {
-                const linkGeo = new THREE.CylinderGeometry(0.3, 0.3, radius * 2, 4);
-                const linkMat = new THREE.MeshBasicMaterial({
-                    color: 0xffffff,
-                    transparent: true,
-                    opacity: 0.1
-                });
-                const link = new THREE.Mesh(linkGeo, linkMat);
-                link.position.set((x1 + x2) / 2, y, (z1 + z2) / 2);
-                link.rotation.z = Math.PI / 2;
-                link.rotation.y = angle;
-                dnaGroup.add(link);
-            }
-        }
-
-        dnaGroup.position.set(180, 0, -100);
-        dnaGroup.rotation.z = 0.3;
-        scene.add(dnaGroup);
-    }
-
-    // --- ORBITING SPHERES ---
-    function createOrbitingSpheres() {
-        const colors = [0xff6b6b, 0x339af0, 0xffd43b, 0x20c997, 0xcc5de8, 0xff922b, 0x51cf66, 0xf06595];
-
-        for (let i = 0; i < 14; i++) {
-            const radius = 6 + Math.random() * 12;
-            const geo = new THREE.SphereGeometry(radius, 16, 16);
-            const color = colors[i % colors.length];
-
-            const mat = new THREE.MeshPhysicalMaterial({
-                color: color,
-                metalness: 0.3,
-                roughness: 0.2,
-                transparent: true,
-                opacity: 0.35,
-                clearcoat: 0.8,
-            });
-
-            const sphere = new THREE.Mesh(geo, mat);
-
-            // Orbit parameters
-            sphere._orbitRadius = 80 + Math.random() * 150;
-            sphere._orbitSpeed = 0.15 + Math.random() * 0.3;
-            sphere._orbitOffset = (i / 14) * Math.PI * 2;
-            sphere._orbitTilt = (Math.random() - 0.5) * 1.2;
-            sphere._verticalRange = 50 + Math.random() * 80;
-            sphere._verticalSpeed = 0.2 + Math.random() * 0.4;
-
-            // Glow
-            const glowGeo = new THREE.SphereGeometry(radius * 1.6, 8, 8);
-            const glowMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.05, side: THREE.BackSide });
-            sphere.add(new THREE.Mesh(glowGeo, glowMat));
-
-            scene.add(sphere);
-            orbitingSpheres.push(sphere);
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.currentRadius, 0, Math.PI * 2);
+            ctx.fill();
         }
     }
 
-    // --- FLOATING CUBES ---
-    function createFloatingCubes() {
-        const colors = [0xff6b6b, 0x845ef7, 0x339af0, 0xffd43b, 0x20c997, 0xf06595];
+    class AuroraWave {
+        constructor(i) {
+            this.baseY = H * (0.2 + i * 0.2);
+            this.amplitude = 60 + Math.random() * 80;
+            this.frequency = 0.002 + Math.random() * 0.003;
+            this.speed = 0.3 + Math.random() * 0.5;
+            this.hue = [300, 180, 60, 120, 30][i % 5]; // magenta, cyan, yellow, green, orange
+            this.thickness = 100 + Math.random() * 80;
+            this.opacity = 0.06 + Math.random() * 0.04;
+            this.phase = Math.random() * Math.PI * 2;
+            this.drift = (Math.random() - 0.5) * 0.2;
+        }
 
-        for (let i = 0; i < 20; i++) {
-            const size = 4 + Math.random() * 10;
-            const geo = new THREE.BoxGeometry(size, size, size);
-            const edgeGeo = new THREE.EdgesGeometry(geo);
-            const color = colors[Math.floor(Math.random() * colors.length)];
-            const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.15 + Math.random() * 0.1 });
-            const cube = new THREE.LineSegments(edgeGeo, mat);
+        draw(time) {
+            ctx.beginPath();
 
-            cube.position.set(
-                (Math.random() - 0.5) * 600,
-                (Math.random() - 0.5) * 400,
-                (Math.random() - 0.5) * 400
-            );
+            const h = (this.hue + hueShift * 0.5) % 360;
+            const gradient = ctx.createLinearGradient(0, this.baseY - this.thickness, 0, this.baseY + this.thickness);
+            gradient.addColorStop(0, `hsla(${h}, 90%, 65%, 0)`);
+            gradient.addColorStop(0.3, `hsla(${h}, 90%, 60%, ${this.opacity})`);
+            gradient.addColorStop(0.5, `hsla(${h + 20}, 85%, 55%, ${this.opacity * 1.5})`);
+            gradient.addColorStop(0.7, `hsla(${h + 40}, 80%, 60%, ${this.opacity})`);
+            gradient.addColorStop(1, `hsla(${h + 40}, 80%, 65%, 0)`);
 
-            cube._rotSpeed = {
-                x: (Math.random() - 0.5) * 0.01,
-                y: (Math.random() - 0.5) * 0.01,
-                z: (Math.random() - 0.5) * 0.005
-            };
-            cube._floatSpeed = Math.random() * 0.3 + 0.1;
-            cube._floatOffset = Math.random() * Math.PI * 2;
-            cube._baseY = cube.position.y;
-            cube.name = 'floatingCube';
-            scene.add(cube);
+            ctx.fillStyle = gradient;
+
+            ctx.moveTo(0, H);
+            for (let x = 0; x <= W; x += 3) {
+                const wave1 = Math.sin(x * this.frequency + time * this.speed + this.phase) * this.amplitude;
+                const wave2 = Math.sin(x * this.frequency * 1.5 + time * this.speed * 0.7 + this.phase * 2) * this.amplitude * 0.4;
+                const wave3 = Math.cos(x * this.frequency * 0.5 + time * this.speed * 1.3) * this.amplitude * 0.3;
+                const mouseInfluence = Math.exp(-Math.pow((x - mouse.x) / 200, 2)) * 40 * Math.sin(time * 3);
+                const y = this.baseY + wave1 + wave2 + wave3 + mouseInfluence + this.drift * time;
+                ctx.lineTo(x, y);
+            }
+            ctx.lineTo(W, H);
+            ctx.closePath();
+            ctx.fill();
         }
     }
 
-    // --- PARTICLE FIELD ---
-    function createParticleField() {
-        const count = 600;
-        const geo = new THREE.BufferGeometry();
-        const positions = new Float32Array(count * 3);
-        const colors = new Float32Array(count * 3);
-
-        const palette = [
-            new THREE.Color(0xffffff),
-            new THREE.Color(0xffd43b),
-            new THREE.Color(0xff6b6b),
-            new THREE.Color(0x339af0),
-            new THREE.Color(0x20c997),
-        ];
-
-        for (let i = 0; i < count; i++) {
-            positions[i * 3] = (Math.random() - 0.5) * 800;
-            positions[i * 3 + 1] = (Math.random() - 0.5) * 600;
-            positions[i * 3 + 2] = (Math.random() - 0.5) * 800;
-            const c = palette[Math.floor(Math.random() * palette.length)];
-            colors[i * 3] = c.r;
-            colors[i * 3 + 1] = c.g;
-            colors[i * 3 + 2] = c.b;
+    class TrailParticle {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.vx = (Math.random() - 0.5) * 4;
+            this.vy = (Math.random() - 0.5) * 4 - 2;
+            this.radius = 3 + Math.random() * 8;
+            this.life = 1;
+            this.decay = 0.008 + Math.random() * 0.015;
+            this.hue = (Math.random() * 360 + hueShift) % 360;
+            this.gravity = 0.02 + Math.random() * 0.03;
         }
 
-        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.vy += this.gravity;
+            this.vx *= 0.99;
+            this.life -= this.decay;
+            this.radius *= 0.995;
+        }
 
-        const mat = new THREE.PointsMaterial({
-            size: 2,
-            transparent: true,
-            opacity: 0.4,
-            vertexColors: true,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false,
-            sizeAttenuation: true
-        });
-
-        const pts = new THREE.Points(geo, mat);
-        pts.name = 'particleField';
-        scene.add(pts);
+        draw() {
+            if (this.life <= 0) return;
+            const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius);
+            gradient.addColorStop(0, `hsla(${this.hue}, 100%, 70%, ${this.life * 0.8})`);
+            gradient.addColorStop(0.5, `hsla(${this.hue + 20}, 90%, 60%, ${this.life * 0.4})`);
+            gradient.addColorStop(1, `hsla(${this.hue + 40}, 80%, 50%, 0)`);
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
 
-    // --- ANIMATION LOOP ---
-    function animate3D() {
-        requestAnimationFrame(animate3D);
-        const t = clock.getElapsedTime();
-
-        tMouseX += (mouseX - tMouseX) * 0.03;
-        tMouseY += (mouseY - tMouseY) * 0.03;
-
-        // Camera follows mouse + subtle drift
-        camera.position.x = tMouseX * 40 + Math.sin(t * 0.1) * 15;
-        camera.position.y = tMouseY * -30 + Math.cos(t * 0.08) * 10;
-        camera.lookAt(0, 0, 0);
-
-        // Morph center icosahedron
-        if (centerShape) {
-            const positions = centerShape.geometry.attributes.position.array;
-            const original = centerShape._originalPositions;
-            for (let i = 0; i < positions.length; i += 3) {
-                const ox = original[i], oy = original[i + 1], oz = original[i + 2];
-                const dist = Math.sqrt(ox * ox + oy * oy + oz * oz);
-                const noise = Math.sin(ox * 0.05 + t * 1.5) * Math.cos(oy * 0.05 + t * 1.2) * Math.sin(oz * 0.05 + t * 0.8);
-                const scale = 1 + noise * 0.15;
-                positions[i] = ox * scale;
-                positions[i + 1] = oy * scale;
-                positions[i + 2] = oz * scale;
-            }
-            centerShape.geometry.attributes.position.needsUpdate = true;
-            centerShape.rotation.y = t * 0.15;
-            centerShape.rotation.x = Math.sin(t * 0.1) * 0.2;
-
-            if (centerShape._wire) {
-                centerShape._wire.rotation.y = -t * 0.05;
-            }
-        }
-
-        // DNA helix rotation
-        if (dnaGroup) {
-            dnaGroup.rotation.y = t * 0.2;
-            dnaGroup.position.y = Math.sin(t * 0.15) * 20;
-        }
-
-        // Orbiting spheres
-        orbitingSpheres.forEach(s => {
-            const angle = t * s._orbitSpeed + s._orbitOffset;
-            s.position.x = Math.cos(angle) * s._orbitRadius;
-            s.position.z = Math.sin(angle) * s._orbitRadius + Math.sin(angle * s._orbitTilt) * 30;
-            s.position.y = Math.sin(t * s._verticalSpeed + s._orbitOffset) * s._verticalRange;
-
-            const pulse = 1 + Math.sin(t * 2 + s._orbitOffset) * 0.1;
-            s.scale.set(pulse, pulse, pulse);
-        });
-
-        // Floating cubes
-        scene.children.forEach(child => {
-            if (child.name === 'floatingCube') {
-                child.rotation.x += child._rotSpeed.x;
-                child.rotation.y += child._rotSpeed.y;
-                child.rotation.z += child._rotSpeed.z;
-                child.position.y = child._baseY + Math.sin(t * child._floatSpeed + child._floatOffset) * 20;
-            }
-            if (child.name === 'particleField') {
-                child.rotation.y = t * 0.008;
-            }
-        });
-
-        renderer.render(scene, camera);
+    function resizeCanvas() {
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight;
     }
 
-    document.addEventListener('mousemove', e => {
-        mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-        mouseY = (e.clientY / window.innerHeight) * 2 - 1;
+    function initBackground() {
+        resizeCanvas();
+
+        // Create blobs
+        blobs = [];
+        for (let i = 0; i < 10; i++) {
+            blobs.push(new GradientBlob(i, 10));
+        }
+
+        // Create aurora waves
+        auroras = [];
+        for (let i = 0; i < 5; i++) {
+            auroras.push(new AuroraWave(i));
+        }
+    }
+
+    // Mouse trail
+    let lastMouseX = 0, lastMouseY = 0;
+    document.addEventListener('mousemove', (e) => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+
+        // Spawn trail particles on movement
+        const dx = e.clientX - lastMouseX;
+        const dy = e.clientY - lastMouseY;
+        const speed = Math.sqrt(dx * dx + dy * dy);
+
+        if (speed > 3) {
+            const count = Math.min(Math.floor(speed / 5), 4);
+            for (let i = 0; i < count; i++) {
+                trailParticles.push(new TrailParticle(e.clientX, e.clientY));
+            }
+        }
+
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
     });
+
+    // Click explosion
+    document.addEventListener('click', (e) => {
+        for (let i = 0; i < 30; i++) {
+            const p = new TrailParticle(e.clientX, e.clientY);
+            p.vx = (Math.random() - 0.5) * 12;
+            p.vy = (Math.random() - 0.5) * 12;
+            p.radius = 5 + Math.random() * 15;
+            p.decay = 0.005 + Math.random() * 0.01;
+            trailParticles.push(p);
+        }
+    });
+
+    function animateBackground() {
+        requestAnimationFrame(animateBackground);
+        time += 0.016;
+
+        // Slowly shift all colors over time
+        hueShift = (time * 8) % 360;
+
+        // Clear with gradient base
+        const bgGrad = ctx.createLinearGradient(0, 0, W * 0.7, H);
+        const h1 = (340 + hueShift * 0.3) % 360;
+        const h2 = (260 + hueShift * 0.3) % 360;
+        const h3 = (200 + hueShift * 0.3) % 360;
+        bgGrad.addColorStop(0, `hsl(${h1}, 80%, 65%)`);
+        bgGrad.addColorStop(0.4, `hsl(${h2}, 75%, 55%)`);
+        bgGrad.addColorStop(1, `hsl(${h3}, 80%, 58%)`);
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Set blend mode for additive/screen blending
+        ctx.globalCompositeOperation = 'screen';
+
+        // Draw gradient blobs
+        blobs.forEach(b => {
+            b.update(time);
+            b.draw();
+        });
+
+        // Draw aurora waves
+        ctx.globalCompositeOperation = 'screen';
+        auroras.forEach(a => a.draw(time));
+
+        // Draw trail particles
+        ctx.globalCompositeOperation = 'screen';
+        trailParticles.forEach(p => {
+            p.update();
+            p.draw();
+        });
+        trailParticles = trailParticles.filter(p => p.life > 0);
+
+        // Draw floating light orbs (bright spots)
+        ctx.globalCompositeOperation = 'screen';
+        for (let i = 0; i < 8; i++) {
+            const ox = W * (0.1 + 0.1 * i) + Math.sin(time * (0.3 + i * 0.1) + i * 1.5) * 100;
+            const oy = H * (0.3 + Math.sin(i * 2) * 0.2) + Math.cos(time * (0.2 + i * 0.08) + i * 2) * 80;
+            const or = 40 + Math.sin(time * 0.5 + i) * 15;
+            const oh = (i * 45 + hueShift) % 360;
+
+            const orbGrad = ctx.createRadialGradient(ox, oy, 0, ox, oy, or);
+            orbGrad.addColorStop(0, `hsla(${oh}, 100%, 85%, 0.6)`);
+            orbGrad.addColorStop(0.3, `hsla(${oh + 15}, 90%, 70%, 0.3)`);
+            orbGrad.addColorStop(0.6, `hsla(${oh + 30}, 80%, 60%, 0.1)`);
+            orbGrad.addColorStop(1, `hsla(${oh + 40}, 70%, 50%, 0)`);
+            ctx.fillStyle = orbGrad;
+            ctx.beginPath();
+            ctx.arc(ox, oy, or, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Mouse glow
+        if (mouse.x > 0) {
+            const mg = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 150);
+            const mh = (time * 50) % 360;
+            mg.addColorStop(0, `hsla(${mh}, 100%, 85%, 0.25)`);
+            mg.addColorStop(0.5, `hsla(${mh + 30}, 90%, 70%, 0.08)`);
+            mg.addColorStop(1, `hsla(${mh + 60}, 80%, 60%, 0)`);
+            ctx.fillStyle = mg;
+            ctx.beginPath();
+            ctx.arc(mouse.x, mouse.y, 150, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.globalCompositeOperation = 'source-over';
+    }
+
+    initBackground();
+    animateBackground();
 
     window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        resizeCanvas();
+        blobs.forEach((b, i) => {
+            b.x = Math.random() * W;
+            b.y = Math.random() * H;
+        });
+        auroras.forEach((a, i) => {
+            a.baseY = H * (0.2 + i * 0.2);
+        });
     });
-
-    init3D();
 
     // ===================================
     // 3. CUSTOM CURSOR
