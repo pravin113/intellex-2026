@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>INTELLEX 2026 | National Level Intercollegiate Symposium</title>
+    <meta name="description"
+        content="INTELLEX 2026 - National Level Intercollegiate Symposium. April 10-11, 2026. Explore events, workshops, and competitions. Register now!" />
+    <meta name="author" content="INTELLEX Team" />
+    <meta name="keywords" content="INTELLEX, symposium, college, technical, events, workshops, hackathon, 2026" />
+
+    <meta property="og:title" content="INTELLEX 2026 | Intercollegiate Symposium" />
+    <meta property="og:description" content="National Level Intercollegiate Symposium - April 10 & 11, 2026" />
+    <meta property="og:type" content="website" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+    <!-- Three.js for 3D Background -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <!-- Custom Cursor -->
+    <div class="cursor-dot" id="cursorDot"></div>
+    <div class="cursor-ring" id="cursorRing"></div>
+
+    <!-- 3D Background Container -->
+    <div id="bg3d"></div>
+
+    <!-- Preloader -->
+    <div class="preloader" id="preloader">
+        <div class="preloader-inner">
+            <div class="preloader-ring"></div>
+            <div class="preloader-ring"></div>
+            <div class="preloader-ring"></div>
+            <div class="preloader-text">
+                <span>I</span><span>N</span><span>T</span><span>E</span><span>L</span><span>L</span><span>E</span><span>X</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#hero" class="nav-logo">
+                <span class="logo-bracket">&lt;</span>
+                <span class="logo-text">INTELLEX</span>
+                <span class="logo-bracket">/&gt;</span>
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="#hero" class="nav-link active" data-section="hero">Home</a>
+                <a href="#about" class="nav-link" data-section="about">About</a>
+                <a href="#events" class="nav-link" data-section="events">Events</a>
+                <a href="#schedule" class="nav-link" data-section="schedule">Schedule</a>
+                <a href="#register" class="nav-link" data-section="register">Register</a>
+                <a href="#contact" class="nav-link" data-section="contact">Contact</a>
+            </div>
+            <a href="#register" class="nav-cta">Register Now</a>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu-links">
+            <a href="#hero" class="mobile-link">Home</a>
+            <a href="#about" class="mobile-link">About</a>
+            <a href="#events" class="mobile-link">Events</a>
+            <a href="#schedule" class="mobile-link">Schedule</a>
+            <a href="#register" class="mobile-link">Register</a>
+            <a href="#contact" class="mobile-link">Contact</a>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="hero" id="hero">
+        <div class="hero-particles" id="heroParticles"></div>
+        <div class="hero-content">
+            <div class="hero-badge reveal-up">
+                <span class="badge-dot"></span>
+                National Level Intercollegiate Symposium
+            </div>
+            <h1 class="hero-title">
+                <span class="title-line reveal-up" data-delay="0.1">
+                    <span class="title-word glitch" data-text="INTELLEX">INTELLEX</span>
+                </span>
+                <span class="title-line title-sub reveal-up" data-delay="0.2">
+                    <span class="gradient-text">Where Minds Converge</span>
+                </span>
+            </h1>
+            <p class="hero-description reveal-up" data-delay="0.3">
+                Two electrifying days of innovation, competition, and collaboration.
+                Push the boundaries of technology and creativity.
+            </p>
+            <div class="hero-date reveal-up" data-delay="0.4">
+                <div class="date-badge">
+                    <i data-lucide="calendar" class="date-icon"></i>
+                    <span>April 10 & 11, 2026</span>
+                </div>
+            </div>
+            <div class="hero-actions reveal-up" data-delay="0.5">
+                <a href="#events" class="btn btn-primary">
+                    <span>Explore Events</span>
+                    <i data-lucide="arrow-right"></i>
+                </a>
+                <a href="#register" class="btn btn-outline">
+                    <span>Register Now</span>
+                    <i data-lucide="user-plus"></i>
+                </a>
+            </div>
+
+            <!-- Countdown Timer -->
+            <div class="countdown reveal-up" data-delay="0.6">
+                <div class="countdown-item">
+                    <div class="countdown-value" id="countDays">00</div>
+                    <div class="countdown-label">Days</div>
+                </div>
+                <div class="countdown-separator">:</div>
+                <div class="countdown-item">
+                    <div class="countdown-value" id="countHours">00</div>
+                    <div class="countdown-label">Hours</div>
+                </div>
+                <div class="countdown-separator">:</div>
+                <div class="countdown-item">
+                    <div class="countdown-value" id="countMinutes">00</div>
+                    <div class="countdown-label">Minutes</div>
+                </div>
+                <div class="countdown-separator">:</div>
+                <div class="countdown-item">
+                    <div class="countdown-value" id="countSeconds">00</div>
+                    <div class="countdown-label">Seconds</div>
+                </div>
+            </div>
+        </div>
+        <div class="hero-scroll-indicator">
+            <div class="scroll-line"></div>
+            <span>Scroll to explore</span>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="about section" id="about">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag reveal-up">// ABOUT THE EVENT</span>
+                <h2 class="section-title reveal-up" data-delay="0.1">
+                    Redefining the <span class="gradient-text">Symposium Experience</span>
+                </h2>
+            </div>
+            <div class="about-grid">
+                <div class="about-text reveal-left">
+                    <p class="about-lead">
+                        INTELLEX 2026 is not just another college symposium — it's a convergence of the brightest minds,
+                        the boldest ideas, and the most cutting-edge technology.
+                    </p>
+                    <p>
+                        Spanning two action-packed days, INTELLEX brings together students from across the nation
+                        to compete, collaborate, and create. From intense coding battles to creative showcases,
+                        from thought-provoking paper presentations to hands-on workshops — there's something for every
+                        innovator.
+                    </p>
+                    <p>
+                        Whether you're a tech wizard, a creative genius, or a strategic thinker, INTELLEX 2026
+                        is your arena. Step up, stand out, and leave your mark.
+                    </p>
+                </div>
+                <div class="about-stats reveal-right">
+                    <div class="stat-card" data-count="20">
+                        <div class="stat-icon"><i data-lucide="trophy"></i></div>
+                        <div class="stat-number">20+</div>
+                        <div class="stat-label">Events</div>
+                    </div>
+                    <div class="stat-card" data-count="1500">
+                        <div class="stat-icon"><i data-lucide="users"></i></div>
+                        <div class="stat-number">1500+</div>
+                        <div class="stat-label">Participants</div>
+                    </div>
+                    <div class="stat-card" data-count="50">
+                        <div class="stat-icon"><i data-lucide="building-2"></i></div>
+                        <div class="stat-number">50+</div>
+                        <div class="stat-label">Colleges</div>
+                    </div>
+                    <div class="stat-card" data-count="100000">
+                        <div class="stat-icon"><i data-lucide="indian-rupee"></i></div>
+                        <div class="stat-number">₹1L+</div>
+                        <div class="stat-label">Prize Pool</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Events Section -->
+    <section class="events section" id="events">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag reveal-up">// EVENTS</span>
+                <h2 class="section-title reveal-up" data-delay="0.1">
+                    Choose Your <span class="gradient-text">Battleground</span>
+                </h2>
+                <p class="section-subtitle reveal-up" data-delay="0.2">
+                    From code to creativity, find the event that ignites your passion
+                </p>
+            </div>
+
+            <!-- Event Category Tabs -->
+            <div class="event-tabs reveal-up" data-delay="0.3">
+                <button class="event-tab active" data-category="all">All Events</button>
+                <button class="event-tab" data-category="technical">Technical</button>
+                <button class="event-tab" data-category="non-technical">Non-Technical</button>
+                <button class="event-tab" data-category="workshop">Workshops</button>
+                <button class="event-tab" data-category="flagship">Flagship</button>
+            </div>
+
+            <!-- Event Cards Grid -->
+            <div class="events-grid" id="eventsGrid">
+                <!-- Flagship Events -->
+                <div class="event-card flagship reveal-up" data-category="flagship" data-delay="0.1">
+                    <div class="event-card-glow"></div>
+                    <div class="event-card-badge">🔥 FLAGSHIP</div>
+                    <div class="event-card-icon">
+                        <i data-lucide="code-2"></i>
+                    </div>
+                    <h3 class="event-card-title">CodeStorm</h3>
+                    <p class="event-card-desc">24-hour hackathon. Build. Break. Innovate. The ultimate coding marathon
+                        where teams race to create solutions for real-world problems.</p>
+                    <div class="event-card-meta">
+                        <span><i data-lucide="users"></i> Team (3-4)</span>
+                        <span><i data-lucide="clock"></i> 24 Hours</span>
+                    </div>
+                    <div class="event-card-prize">
+                        <i data-lucide="trophy"></i> ₹25,000
+                    </div>
+                </div>
+
+                <div class="event-card flagship reveal-up" data-category="flagship" data-delay="0.15">
+                    <div class="event-card-glow"></div>
+                    <div class="event-card-badge">🔥 FLAGSHIP</div>
+                    <div class="event-card-icon">
+                        <i data-lucide="bot"></i>
+                    </div>
+                    <h3 class="event-card-title">AI Arena</h3>
+                    <p class="event-card-desc">Build AI models that compete head-to-head. Design, train, and deploy ML
+                        solutions in this intense AI showdown.</p>
+                    <div class="event-card-meta">
+                        <span><i data-lucide="users"></i> Team (2-3)</span>
+                        <span><i data-lucide="clock"></i> 6 Hours</span>
+                    </div>
+                    <div class="event-card-prize">
+                        <i data-lucide="trophy"></i> ₹15,000
+                    </div>
+                </div>
+
+                <!-- Technical Events -->
+                <div class="event-card reveal-up" data-category="technical" data-delay="0.1">
+                    <div class="event-card-glow"></div>
+                    <div class="event-card-icon">
+                        <i data-lucide="bug"></i>
+                    </div>
+                    <h3 class="event-card-title">Debug Duel</h3>
+                    <p class="event-card-desc">Find and fix bugs faster than your opponents. A race against time and
+                        logic errors in this electrifying debugging competition.</p>
+                    <div class="event-card-meta">
+                        <span><i data-lucide="user"></i> Individual</span>
+                        <span><i data-lucide="clock"></i> 2 Hours</span>
+                    </div>
+                    <div class="event-card-prize">
+                        <i data-lucide="trophy"></i> ₹5,000
+                    </div>
+                </div>
+
+                <div class="event-card reveal-up" data-category="technical" data-delay="0.15">
+                    <div class="event-card-glow"></div>
+                    <div class="event-card-icon">
+                        <i data-lucide="database"></i>
+                    </div>
+                    <h3 class="event-card-title">Query Quest</h3>
+                    <p class="event-card-desc">Master the art of database queries. Solve complex SQL puzzles and
+                        optimize queries to prove your database dominance.</p>
+                    <div class="event-card-meta">
+                        <span><i data-lucide="user"></i> Individual</span>
+                        <span><i data-lucide="clock"></i> 1.5 Hours</span>
+                    </div>
+                    <div class="event-card-prize">
+                        <i data-lucide="trophy"></i> ₹3,000
+                    </div>
+                </div>
+
+                <div class="event-card reveal-up" data-category="technical" data-delay="0.2">
+                    <div class="event-card-glow"></div>
+                    <div class="event-card-icon">
+                        <i data-lucide="shield"></i>
+                    </div>
+                    <h3 class="event-card-title">CyberSiege</h3>
+                    <p class="event-card-desc">Capture the Flag cybersecurity challenge. Hack, defend, and exploit your
+                        way to victory in this thrilling CTF competition.</p>
+                    <div class="event-card-meta">
+                        <span><i data-lucide="users"></i> Team (2)</span>
+                        <span><i data-lucide="clock"></i> 3 Hours</span>
+                    </div>
+                    <div class="event-card-prize">
+                        <i data-lucide="trophy"></i> ₹8,000
+                    </div>
+                </div>
+
+                <div class="event-card reveal-up" data-category="technical" data-delay="0.25">
+                    <div class="event-card-glow"></div>
+                    <div class="event-card-icon">
+                        <i data-lucide="presentation"></i>
+                    </div>
+                    <h3 class="event-card-title">Paper Prism</h3>
+                    <p class="event-card-desc">Present your research to a panel of industry experts. Showcase
+                        groundbreaking ideas and innovative solutions.</p>
+                    <div class="event-card-meta">
+                        <span><i data-lucide="users"></i> Team (1-2)</span>
+                        <span><i data-lucide="clock"></i> 15 Min</span>
+                    </div>
+                    <div class="event-card-prize">
+                        <i data-lucide="trophy"></i> ₹5,000
+                    </div>
+                </div>
+
+                <div class="event-card reveal-up" data-category="technical" data-delay="0.3">
+                    <div class="event-card-glow"></div>
+                    <div class="event-card-icon">
+                        <i data-lucide="layout-dashboard"></i>
+                    </div>
+                    <h3 class="event-card-title">UI/UX Clash</h3>
+                    <p class="event-card-desc">Design stunning interfaces under pressure. Create pixel-perfect,
+                        user-centric designs that wow the judges.</p>
+                    <div class="event-card-meta">
+                        <span><i data-lucide="user"></i> Individual</span>
+                        <span><i data-lucide="clock"></i> 3 Hours</span>
+                    </div>
+                    <div class="event-card-prize">
+                        <i data-lucide="trophy"></i> ₹5,000
+                    </div>
+                </div>
+
+                <!-- Non-Technical Events -->
+                <div class="event-card reveal-up" data-category="non-technical" data-delay="0.1">
+                    <div class="event-card-glow"></div>
+                    <div class="event-card-icon">
+                        <i data-lucide="lightbulb"></i>
+                    </div>
+                    <h3 class="event-card-title">Shark Tank</h3>
+                    <p class="event-card-desc">Pitch your startup idea to a panel of investors. Convince them your
+                        vision is worth millions in this high-stakes pitching arena.</p>
+                    <div class="event-card-meta">
+                        <span><i data-lucide="users"></i> Team (2-3)</span>
+                        <span><i data-lucide="clock"></i> 10 Min</span>
+                    </div>
+                    <div class="event-card-prize">
+                        <i data-lucide="trophy"></i> ₹8,000
+                    </div>
+                </div>
+
+                <div class="event-card reveal-up" data-category="non-technical" data-delay="0.15">
+                    <div class="event-card-glow"></div>
+                    <div class="event-card-icon">
+                        <i data-lucide="mic"></i>
+                    </div>
+                    <h3 class="event-card-title">Voice of Intellex</h3>
+                    <p class="event-card-desc">The ultimate debate and public speaking showdown. Argue, persuade, and
+                        captivate the audience with your words.</p>
+                    <div class="event-card-meta">
+                        <span><i data-lucide="user"></i> Individual</span>
+                        <span><i data-lucide="clock"></i> 2 Hours</span>
+                    </div>
+                    <div class="event-card-prize">
+                        <i data-lucide="trophy"></i> ₹3,000
+                    </div>
+                </div>
+
+                <div class="event-card reveal-up" data-category="non-technical" data-delay="0.2">
+                    <div class="event-card-glow"></div>
+                    <div class="event-card-icon">
+                        <i data-lucide="camera"></i>
+                    </div>
+                    <h3 class="event-card-title">Pixel Perfect</h3>
+                    <p class="event-card-desc">Capture the world through your lens. Photography competition where
+                        creativity meets technical skill.</p>
+                    <div class="event-card-meta">
+                        <span><i data-lucide="user"></i> Individual</span>
+                        <span><i data-lucide="clock"></i> 4 Hours</span>
+                    </div>
+                    <div class="event-card-prize">
+                        <i data-lucide="trophy"></i> ₹3,000
+                    </div>
+                </div>
+
+                <div class="event-card reveal-up" data-category="non-technical" data-delay="0.25">
+                    <div class="event-card-glow"></div>
+                    <div class="event-card-icon">
+                        <i data-lucide="puzzle"></i>
+                    </div>
+                    <h3 class="event-card-title">Mind Maze</h3>
+                    <p class="event-card-desc">Solve riddles, crack codes, and navigate through mental challenges. A
+                        treasure hunt for the intellectually curious.</p>
+                    <div class="event-card-meta">
+                        <span><i data-lucide="users"></i> Team (3)</span>
+                        <span><i data-lucide="clock"></i> 2 Hours</span>
+                    </div>
+                    <div class="event-card-prize">
+                        <i data-lucide="trophy"></i> ₹5,000
+                    </div>
+                </div>
+
+                <div class="event-card reveal-up" data-category="non-technical" data-delay="0.3">
+                    <div class="event-card-glow"></div>
+                    <div class="event-card-icon">
+                        <i data-lucide="film"></i>
+                    </div>
+                    <h3 class="event-card-title">Reel Craft</h3>
+                    <p class="event-card-desc">Short film making competition. Tell a story in 5 minutes that leaves the
+                        audience speechless. Lights, camera, action!</p>
+                    <div class="event-card-meta">
+                        <span><i data-lucide="users"></i> Team (3-5)</span>
+                        <span><i data-lucide="clock"></i> 48 Hours</span>
+                    </div>
+                    <div class="event-card-prize">
+                        <i data-lucide="trophy"></i> ₹5,000
+                    </div>
+                </div>
+
+                <!-- Workshops -->
+                <div class="event-card workshop-card reveal-up" data-category="workshop" data-delay="0.1">
+                    <div class="event-card-glow"></div>
+                    <div class="event-card-badge workshop-badge">🎓 WORKSHOP</div>
+                    <div class="event-card-icon">
+                        <i data-lucide="brain"></i>
+                    </div>
+                    <h3 class="event-card-title">GenAI Masterclass</h3>
+                    <p class="event-card-desc">Hands-on workshop on Generative AI. Build with LLMs, create AI agents,
+                        and explore the frontier of artificial intelligence.</p>
+                    <div class="event-card-meta">
+                        <span><i data-lucide="user"></i> Individual</span>
+                        <span><i data-lucide="clock"></i> 4 Hours</span>
+                    </div>
+                    <div class="event-card-prize workshop-cert">
+                        <i data-lucide="award"></i> Certification
+                    </div>
+                </div>
+
+                <div class="event-card workshop-card reveal-up" data-category="workshop" data-delay="0.15">
+                    <div class="event-card-glow"></div>
+                    <div class="event-card-badge workshop-badge">🎓 WORKSHOP</div>
+                    <div class="event-card-icon">
+                        <i data-lucide="cloud"></i>
+                    </div>
+                    <h3 class="event-card-title">Cloud Native Dev</h3>
+                    <p class="event-card-desc">Deploy like a pro. Learn Docker, Kubernetes, and cloud-native development
+                        practices from industry experts.</p>
+                    <div class="event-card-meta">
+                        <span><i data-lucide="user"></i> Individual</span>
+                        <span><i data-lucide="clock"></i> 4 Hours</span>
+                    </div>
+                    <div class="event-card-prize workshop-cert">
+                        <i data-lucide="award"></i> Certification
+                    </div>
+                </div>
+
+                <div class="event-card workshop-card reveal-up" data-category="workshop" data-delay="0.2">
+                    <div class="event-card-glow"></div>
+                    <div class="event-card-badge workshop-badge">🎓 WORKSHOP</div>
+                    <div class="event-card-icon">
+                        <i data-lucide="blocks"></i>
+                    </div>
+                    <h3 class="event-card-title">Web3 & Blockchain</h3>
+                    <p class="event-card-desc">Explore decentralized applications. Build smart contracts and understand
+                        the blockchain ecosystem hands-on.</p>
+                    <div class="event-card-meta">
+                        <span><i data-lucide="user"></i> Individual</span>
+                        <span><i data-lucide="clock"></i> 3 Hours</span>
+                    </div>
+                    <div class="event-card-prize workshop-cert">
+                        <i data-lucide="award"></i> Certification
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Schedule Section -->
+    <section class="schedule section" id="schedule">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag reveal-up">// SCHEDULE</span>
+                <h2 class="section-title reveal-up" data-delay="0.1">
+                    The <span class="gradient-text">Timeline</span>
+                </h2>
+            </div>
+
+            <div class="schedule-tabs reveal-up" data-delay="0.2">
+                <button class="schedule-tab active" data-day="1">
+                    <span class="schedule-tab-day">Day 1</span>
+                    <span class="schedule-tab-date">April 10</span>
+                </button>
+                <button class="schedule-tab" data-day="2">
+                    <span class="schedule-tab-day">Day 2</span>
+                    <span class="schedule-tab-date">April 11</span>
+                </button>
+            </div>
+
+            <div class="schedule-timeline" id="scheduleTimeline">
+                <!-- Day 1 -->
+                <div class="timeline-day active" data-day="1">
+                    <div class="timeline-item reveal-left" data-delay="0.1">
+                        <div class="timeline-time">08:30 AM</div>
+                        <div class="timeline-content">
+                            <div class="timeline-dot"></div>
+                            <h4>Registration & Check-in</h4>
+                            <p>Collect your ID badges, event kits, and get ready for an incredible experience.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item reveal-right" data-delay="0.15">
+                        <div class="timeline-time">09:30 AM</div>
+                        <div class="timeline-content">
+                            <div class="timeline-dot"></div>
+                            <h4>Inauguration Ceremony</h4>
+                            <p>Grand opening with chief guests, keynote address, and the official launch of INTELLEX
+                                2026.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item reveal-left" data-delay="0.2">
+                        <div class="timeline-time">10:30 AM</div>
+                        <div class="timeline-content">
+                            <div class="timeline-dot"></div>
+                            <h4>Technical Events Begin</h4>
+                            <p>CodeStorm Hackathon kickoff, Debug Duel, Query Quest, and Paper Prism presentations.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item reveal-right" data-delay="0.25">
+                        <div class="timeline-time">01:00 PM</div>
+                        <div class="timeline-content">
+                            <div class="timeline-dot"></div>
+                            <h4>Lunch Break & Networking</h4>
+                            <p>Refuel and connect with fellow participants, sponsors, and industry professionals.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item reveal-left" data-delay="0.3">
+                        <div class="timeline-time">02:00 PM</div>
+                        <div class="timeline-content">
+                            <div class="timeline-dot"></div>
+                            <h4>Workshops Session I</h4>
+                            <p>GenAI Masterclass and Cloud Native Development workshops begin.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item reveal-right" data-delay="0.35">
+                        <div class="timeline-time">05:00 PM</div>
+                        <div class="timeline-content">
+                            <div class="timeline-dot"></div>
+                            <h4>Non-Technical Events</h4>
+                            <p>Shark Tank pitching, Voice of Intellex debates, and Mind Maze treasure hunt.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item reveal-left" data-delay="0.4">
+                        <div class="timeline-time">07:00 PM</div>
+                        <div class="timeline-content">
+                            <div class="timeline-dot"></div>
+                            <h4>Cultural Night</h4>
+                            <p>Live performances, DJ night, and entertainment to cap off an amazing first day.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Day 2 -->
+                <div class="timeline-day" data-day="2">
+                    <div class="timeline-item reveal-left" data-delay="0.1">
+                        <div class="timeline-time">09:00 AM</div>
+                        <div class="timeline-content">
+                            <div class="timeline-dot"></div>
+                            <h4>Day 2 Kickoff</h4>
+                            <p>Energy refill session and overview of Day 2 schedule and exciting events ahead.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item reveal-right" data-delay="0.15">
+                        <div class="timeline-time">09:30 AM</div>
+                        <div class="timeline-content">
+                            <div class="timeline-dot"></div>
+                            <h4>AI Arena & CyberSiege</h4>
+                            <p>The AI model showdown and CTF cybersecurity challenge commence.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item reveal-left" data-delay="0.2">
+                        <div class="timeline-time">10:00 AM</div>
+                        <div class="timeline-content">
+                            <div class="timeline-dot"></div>
+                            <h4>UI/UX Clash & Reel Craft</h4>
+                            <p>Design competition and short film screening and judging.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item reveal-right" data-delay="0.25">
+                        <div class="timeline-time">12:00 PM</div>
+                        <div class="timeline-content">
+                            <div class="timeline-dot"></div>
+                            <h4>Workshop Session II</h4>
+                            <p>Web3 & Blockchain workshop. Build smart contracts and DApps.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item reveal-left" data-delay="0.3">
+                        <div class="timeline-time">01:30 PM</div>
+                        <div class="timeline-content">
+                            <div class="timeline-dot"></div>
+                            <h4>CodeStorm Final Presentations</h4>
+                            <p>Hackathon teams present their 24-hour creations to the judges panel.</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item reveal-right" data-delay="0.35">
+                        <div class="timeline-time">03:30 PM</div>
+                        <div class="timeline-content">
+                            <div class="timeline-dot"></div>
+                            <h4>Valedictory & Prize Distribution</h4>
+                            <p>Closing ceremony, winner announcements, prize distribution, and vote of thanks.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Registration Section -->
+    <section class="register section" id="register">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag reveal-up">// REGISTER</span>
+                <h2 class="section-title reveal-up" data-delay="0.1">
+                    Claim Your <span class="gradient-text">Spot</span>
+                </h2>
+                <p class="section-subtitle reveal-up" data-delay="0.2">
+                    Limited seats available. Register now to secure your place at INTELLEX 2026.
+                </p>
+            </div>
+
+            <div class="register-wrapper reveal-up" data-delay="0.3">
+                <div class="register-card">
+                    <div class="register-card-glow"></div>
+                    <form class="register-form" id="registerForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="regName">Full Name</label>
+                                <input type="text" id="regName" name="name" placeholder="Enter your full name"
+                                    required />
+                            </div>
+                            <div class="form-group">
+                                <label for="regEmail">Email Address</label>
+                                <input type="email" id="regEmail" name="email" placeholder="your@email.com" required />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="regPhone">Phone Number</label>
+                                <input type="tel" id="regPhone" name="phone" placeholder="+91 XXXXX XXXXX" required />
+                            </div>
+                            <div class="form-group">
+                                <label for="regCollege">College Name</label>
+                                <input type="text" id="regCollege" name="college" placeholder="Your college name"
+                                    required />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="regYear">Year of Study</label>
+                                <select id="regYear" name="year" required>
+                                    <option value="" disabled selected>Select Year</option>
+                                    <option value="1">1st Year</option>
+                                    <option value="2">2nd Year</option>
+                                    <option value="3">3rd Year</option>
+                                    <option value="4">4th Year</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="regDept">Department</label>
+                                <input type="text" id="regDept" name="department" placeholder="e.g. Computer Science"
+                                    required />
+                            </div>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Select Events</label>
+                            <div class="event-checkboxes">
+                                <label class="checkbox-label"><input type="checkbox" name="events" value="codestorm" />
+                                    CodeStorm</label>
+                                <label class="checkbox-label"><input type="checkbox" name="events" value="aiarena" /> AI
+                                    Arena</label>
+                                <label class="checkbox-label"><input type="checkbox" name="events" value="debugduel" />
+                                    Debug Duel</label>
+                                <label class="checkbox-label"><input type="checkbox" name="events" value="queryquest" />
+                                    Query Quest</label>
+                                <label class="checkbox-label"><input type="checkbox" name="events" value="cybersiege" />
+                                    CyberSiege</label>
+                                <label class="checkbox-label"><input type="checkbox" name="events" value="paperprism" />
+                                    Paper Prism</label>
+                                <label class="checkbox-label"><input type="checkbox" name="events" value="uiuxclash" />
+                                    UI/UX Clash</label>
+                                <label class="checkbox-label"><input type="checkbox" name="events" value="sharktank" />
+                                    Shark Tank</label>
+                                <label class="checkbox-label"><input type="checkbox" name="events"
+                                        value="voiceofitellex" /> Voice of Intellex</label>
+                                <label class="checkbox-label"><input type="checkbox" name="events"
+                                        value="pixelperfect" /> Pixel Perfect</label>
+                                <label class="checkbox-label"><input type="checkbox" name="events" value="mindmaze" />
+                                    Mind Maze</label>
+                                <label class="checkbox-label"><input type="checkbox" name="events" value="reelcraft" />
+                                    Reel Craft</label>
+                                <label class="checkbox-label"><input type="checkbox" name="events" value="genai" />
+                                    GenAI Masterclass</label>
+                                <label class="checkbox-label"><input type="checkbox" name="events"
+                                        value="cloudnative" /> Cloud Native Dev</label>
+                                <label class="checkbox-label"><input type="checkbox" name="events" value="web3" /> Web3
+                                    & Blockchain</label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <span>Register for INTELLEX 2026</span>
+                            <i data-lucide="arrow-right"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Registration Success Modal -->
+            <div class="modal" id="successModal">
+                <div class="modal-content">
+                    <div class="modal-icon">
+                        <i data-lucide="check-circle-2"></i>
+                    </div>
+                    <h3>Registration Successful! 🎉</h3>
+                    <p>Welcome to INTELLEX 2026! Check your email for confirmation details and event information.</p>
+                    <button class="btn btn-primary" id="modalClose">
+                        <span>Awesome!</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact / Footer Section -->
+    <footer class="footer section" id="contact">
+        <div class="container">
+            <div class="footer-top">
+                <div class="footer-brand reveal-up">
+                    <div class="footer-logo">
+                        <span class="logo-bracket">&lt;</span>
+                        <span class="logo-text">INTELLEX</span>
+                        <span class="logo-bracket">/&gt;</span>
+                    </div>
+                    <p class="footer-tagline">Where Minds Converge • April 10-11, 2026</p>
+                    <div class="footer-socials">
+                        <a href="#" class="social-link" aria-label="Instagram"><i data-lucide="instagram"></i></a>
+                        <a href="#" class="social-link" aria-label="LinkedIn"><i data-lucide="linkedin"></i></a>
+                        <a href="#" class="social-link" aria-label="Twitter"><i data-lucide="twitter"></i></a>
+                        <a href="#" class="social-link" aria-label="YouTube"><i data-lucide="youtube"></i></a>
+                    </div>
+                </div>
+                <div class="footer-links-group reveal-up" data-delay="0.1">
+                    <h4>Quick Links</h4>
+                    <a href="#about">About</a>
+                    <a href="#events">Events</a>
+                    <a href="#schedule">Schedule</a>
+                    <a href="#register">Register</a>
+                </div>
+                <div class="footer-links-group reveal-up" data-delay="0.2">
+                    <h4>Events</h4>
+                    <a href="#events">CodeStorm</a>
+                    <a href="#events">AI Arena</a>
+                    <a href="#events">CyberSiege</a>
+                    <a href="#events">Workshops</a>
+                </div>
+                <div class="footer-contact reveal-up" data-delay="0.3">
+                    <h4>Contact Us</h4>
+                    <div class="contact-item">
+                        <i data-lucide="mail"></i>
+                        <span>intellex2026@college.edu</span>
+                    </div>
+                    <div class="contact-item">
+                        <i data-lucide="phone"></i>
+                        <span>+91 98765 43210</span>
+                    </div>
+                    <div class="contact-item">
+                        <i data-lucide="map-pin"></i>
+                        <span>College Campus, City</span>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 INTELLEX. All rights reserved. Crafted with 💜</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
