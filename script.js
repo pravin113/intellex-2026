@@ -1,6 +1,6 @@
 /* ========================================
    INTELLEX 2026 — BRIGHT THEME Script
-   Colorful 3D Background + Interactions
+   NEW 3D: Morphing Wave + Glass Spheres
    ======================================== */
 
 (function () {
@@ -26,21 +26,24 @@
     }
 
     // ===================================
-    // 2. THREE.JS 3D BRIGHT BACKGROUND
+    // 2. THREE.JS — NEW 3D BACKGROUND
+    //    Morphing Wave + Glass Orbs + Beams
     // ===================================
     const container = document.getElementById('bg3d');
-    let scene, camera, renderer;
-    let warpParticles, floatingShapes = [];
+    let scene, camera, renderer, clock;
+    let waveMesh, waveMesh2;
+    let orbs = [];
+    let beams = [];
     let mouseX = 0, mouseY = 0;
     let targetMouseX = 0, targetMouseY = 0;
-    let clock;
 
     function init3D() {
         scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0xf5f0ff, 0.0006);
+        scene.fog = new THREE.FogExp2(0xf5f0ff, 0.00035);
 
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
-        camera.position.set(0, 50, 200);
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 3000);
+        camera.position.set(0, 120, 400);
+        camera.lookAt(0, 0, 0);
 
         renderer = new THREE.WebGLRenderer({
             antialias: true,
@@ -54,416 +57,411 @@
 
         clock = new THREE.Clock();
 
-        createBrightWarpField();
-        createColorfulShapes();
-        createSoftGrid();
-        createBubbleParticles();
-        createColorClouds();
-        createRings();
+        // Add lights for the spheres
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(200, 300, 200);
+        scene.add(dirLight);
+
+        const pointLight1 = new THREE.PointLight(0x7c3aed, 1.5, 600);
+        pointLight1.position.set(-150, 100, 100);
+        scene.add(pointLight1);
+
+        const pointLight2 = new THREE.PointLight(0xf43f5e, 1.2, 600);
+        pointLight2.position.set(200, 80, -100);
+        scene.add(pointLight2);
+
+        const pointLight3 = new THREE.PointLight(0x06b6d4, 1, 500);
+        pointLight3.position.set(0, 150, -200);
+        scene.add(pointLight3);
+
+        createWaveTerrain();
+        createGlassOrbs();
+        createLightBeams();
+        createFloatingRings();
+        createSparkles();
 
         animate3D();
     }
 
-    // --- BRIGHT WARP FIELD PARTICLES ---
-    function createBrightWarpField() {
-        const count = 5000;
-        const geometry = new THREE.BufferGeometry();
-        const positions = new Float32Array(count * 3);
-        const colors = new Float32Array(count * 3);
-        const sizes = new Float32Array(count);
+    // --- MORPHING WAVE TERRAIN ---
+    function createWaveTerrain() {
+        const segments = 120;
+        const size = 1200;
 
-        const colorPalette = [
-            new THREE.Color(0x7c3aed), // purple
-            new THREE.Color(0xf43f5e), // rose
-            new THREE.Color(0xf97316), // orange
-            new THREE.Color(0x06b6d4), // cyan
-            new THREE.Color(0x10b981), // emerald
-            new THREE.Color(0xec4899), // pink
-            new THREE.Color(0x8b5cf6), // violet
-            new THREE.Color(0xeab308), // amber
-        ];
-
-        for (let i = 0; i < count; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const radius = 30 + Math.random() * 450;
-            const z = (Math.random() - 0.5) * 2000;
-
-            positions[i * 3] = Math.cos(angle) * radius;
-            positions[i * 3 + 1] = Math.sin(angle) * radius;
-            positions[i * 3 + 2] = z;
-
-            const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
-            colors[i * 3] = color.r;
-            colors[i * 3 + 1] = color.g;
-            colors[i * 3 + 2] = color.b;
-
-            sizes[i] = Math.random() * 4 + 1;
-        }
-
-        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-        geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-
-        const material = new THREE.ShaderMaterial({
+        // First wave layer — purple/pink gradient
+        const geo1 = new THREE.PlaneGeometry(size, size, segments, segments);
+        const mat1 = new THREE.ShaderMaterial({
             uniforms: {
                 uTime: { value: 0 },
-                uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) }
+                uColor1: { value: new THREE.Color(0x7c3aed) },
+                uColor2: { value: new THREE.Color(0xf43f5e) },
+                uColor3: { value: new THREE.Color(0xf97316) },
+                uOpacity: { value: 0.25 }
             },
             vertexShader: `
-                attribute float size;
-                varying vec3 vColor;
-                varying float vOpacity;
                 uniform float uTime;
-                uniform float uPixelRatio;
+                varying vec2 vUv;
+                varying float vElevation;
                 
                 void main() {
-                    vColor = color;
+                    vUv = uv;
                     vec3 pos = position;
-
-                    // Warp fly-through
-                    pos.z = mod(pos.z + uTime * 60.0, 2000.0) - 1000.0;
-
-                    // Gentle spiral
-                    float angle = uTime * 0.08 + pos.z * 0.0008;
-                    float c = cos(angle);
-                    float s = sin(angle);
-                    pos.xy = mat2(c, -s, s, c) * pos.xy;
                     
-                    vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-                    float depth = -mvPosition.z;
-                    gl_PointSize = size * uPixelRatio * (180.0 / depth);
-                    gl_PointSize = clamp(gl_PointSize, 1.0, 25.0);
+                    // Complex wave pattern
+                    float wave1 = sin(pos.x * 0.008 + uTime * 0.5) * 25.0;
+                    float wave2 = sin(pos.y * 0.006 + uTime * 0.3) * 20.0;
+                    float wave3 = sin((pos.x + pos.y) * 0.005 + uTime * 0.7) * 15.0;
+                    float wave4 = cos(pos.x * 0.01 - uTime * 0.4) * sin(pos.y * 0.008 + uTime * 0.6) * 18.0;
+                    float ripple = sin(length(pos.xy) * 0.008 - uTime * 0.8) * 12.0;
                     
-                    // Fade based on depth
-                    vOpacity = smoothstep(1000.0, 200.0, depth) * 0.6;
+                    pos.z = wave1 + wave2 + wave3 + wave4 + ripple;
+                    vElevation = pos.z;
                     
-                    gl_Position = projectionMatrix * mvPosition;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
                 }
             `,
             fragmentShader: `
-                varying vec3 vColor;
-                varying float vOpacity;
+                uniform vec3 uColor1;
+                uniform vec3 uColor2;
+                uniform vec3 uColor3;
+                uniform float uOpacity;
+                uniform float uTime;
+                varying vec2 vUv;
+                varying float vElevation;
                 
                 void main() {
-                    vec2 center = gl_PointCoord - 0.5;
-                    float dist = length(center);
-                    if (dist > 0.5) discard;
+                    // Gradient based on position and elevation
+                    float mixVal = (vElevation + 40.0) / 80.0;
+                    vec3 color = mix(uColor1, uColor2, vUv.x);
+                    color = mix(color, uColor3, vUv.y * 0.5);
+                    color = mix(color, vec3(1.0), mixVal * 0.3);
                     
-                    // Soft glow
-                    float alpha = 1.0 - smoothstep(0.0, 0.5, dist);
-                    alpha *= vOpacity;
+                    // Add shimmer
+                    float shimmer = sin(vUv.x * 50.0 + uTime * 2.0) * 0.03;
+                    color += shimmer;
                     
-                    // Bright saturated colors
-                    vec3 brightColor = vColor * 1.3;
-                    gl_FragColor = vec4(brightColor, alpha);
+                    gl_FragColor = vec4(color, uOpacity + mixVal * 0.08);
                 }
             `,
             transparent: true,
-            depthWrite: false,
-            blending: THREE.AdditiveBlending,
-            vertexColors: true
+            side: THREE.DoubleSide,
+            wireframe: false,
+            depthWrite: false
         });
 
-        warpParticles = new THREE.Points(geometry, material);
-        scene.add(warpParticles);
+        waveMesh = new THREE.Mesh(geo1, mat1);
+        waveMesh.rotation.x = -Math.PI / 2.2;
+        waveMesh.position.y = -80;
+        scene.add(waveMesh);
+
+        // Second wave layer — wireframe overlay
+        const geo2 = new THREE.PlaneGeometry(size, size, 60, 60);
+        const mat2 = new THREE.ShaderMaterial({
+            uniforms: {
+                uTime: { value: 0 },
+                uColor: { value: new THREE.Color(0x7c3aed) },
+            },
+            vertexShader: `
+                uniform float uTime;
+                varying vec2 vUv;
+                
+                void main() {
+                    vUv = uv;
+                    vec3 pos = position;
+                    
+                    float wave1 = sin(pos.x * 0.008 + uTime * 0.5) * 25.0;
+                    float wave2 = sin(pos.y * 0.006 + uTime * 0.3) * 20.0;
+                    float wave3 = sin((pos.x + pos.y) * 0.005 + uTime * 0.7) * 15.0;
+                    float wave4 = cos(pos.x * 0.01 - uTime * 0.4) * sin(pos.y * 0.008 + uTime * 0.6) * 18.0;
+                    float ripple = sin(length(pos.xy) * 0.008 - uTime * 0.8) * 12.0;
+                    
+                    pos.z = wave1 + wave2 + wave3 + wave4 + ripple + 1.0;
+                    
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 uColor;
+                varying vec2 vUv;
+                
+                void main() {
+                    gl_FragColor = vec4(uColor, 0.06);
+                }
+            `,
+            transparent: true,
+            wireframe: true,
+            depthWrite: false
+        });
+
+        waveMesh2 = new THREE.Mesh(geo2, mat2);
+        waveMesh2.rotation.x = -Math.PI / 2.2;
+        waveMesh2.position.y = -80;
+        scene.add(waveMesh2);
     }
 
-    // --- COLORFUL FLOATING GEOMETRIC SHAPES ---
-    function createColorfulShapes() {
-        const geometries = [
-            new THREE.OctahedronGeometry(14, 0),
-            new THREE.IcosahedronGeometry(12, 0),
-            new THREE.TetrahedronGeometry(16, 0),
-            new THREE.DodecahedronGeometry(13, 0),
-            new THREE.TorusGeometry(12, 3, 8, 6),
-            new THREE.TorusKnotGeometry(10, 3, 50, 8),
-            new THREE.BoxGeometry(14, 14, 14),
-            new THREE.ConeGeometry(10, 18, 6),
+    // --- GLASS ORBS (reflective floating spheres) ---
+    function createGlassOrbs() {
+        const orbData = [
+            { radius: 20, pos: [-120, 60, -50], color: 0x7c3aed, speed: 0.4 },
+            { radius: 15, pos: [180, 90, -100], color: 0xf43f5e, speed: 0.5 },
+            { radius: 25, pos: [50, 130, -200], color: 0x06b6d4, speed: 0.3 },
+            { radius: 12, pos: [-200, 40, 50], color: 0xf97316, speed: 0.6 },
+            { radius: 18, pos: [250, 70, -30], color: 0x10b981, speed: 0.35 },
+            { radius: 10, pos: [-80, 110, -150], color: 0xec4899, speed: 0.55 },
+            { radius: 22, pos: [0, 160, -250], color: 0x8b5cf6, speed: 0.25 },
+            { radius: 8, pos: [150, 30, 100], color: 0xeab308, speed: 0.7 },
+            { radius: 14, pos: [-250, 100, -80], color: 0x7c3aed, speed: 0.45 },
+            { radius: 16, pos: [100, 50, 80], color: 0xf43f5e, speed: 0.5 },
+            { radius: 9, pos: [-150, 150, 30], color: 0x06b6d4, speed: 0.65 },
+            { radius: 13, pos: [220, 120, -180], color: 0x10b981, speed: 0.4 },
         ];
 
-        const colors = [0x7c3aed, 0xf43f5e, 0xf97316, 0x06b6d4, 0x10b981, 0xec4899, 0x8b5cf6];
+        orbData.forEach((data, i) => {
+            const geo = new THREE.SphereGeometry(data.radius, 32, 32);
 
-        for (let i = 0; i < 30; i++) {
-            const geo = geometries[Math.floor(Math.random() * geometries.length)];
-            const color = colors[Math.floor(Math.random() * colors.length)];
-
-            // Wireframe version
-            const edgesGeo = new THREE.EdgesGeometry(geo);
-            const mat = new THREE.LineBasicMaterial({
-                color: color,
+            // Glass-like material
+            const mat = new THREE.MeshPhysicalMaterial({
+                color: data.color,
+                metalness: 0.1,
+                roughness: 0.05,
                 transparent: true,
-                opacity: 0.2 + Math.random() * 0.15,
+                opacity: 0.45,
+                envMapIntensity: 1,
+                clearcoat: 1,
+                clearcoatRoughness: 0.1,
             });
 
-            const wireframe = new THREE.LineSegments(edgesGeo, mat);
+            const orb = new THREE.Mesh(geo, mat);
+            orb.position.set(...data.pos);
 
-            wireframe.position.set(
-                (Math.random() - 0.5) * 900,
-                (Math.random() - 0.5) * 600,
-                (Math.random() - 0.5) * 800
-            );
+            // Inner glow sphere
+            const glowGeo = new THREE.SphereGeometry(data.radius * 0.6, 16, 16);
+            const glowMat = new THREE.MeshBasicMaterial({
+                color: data.color,
+                transparent: true,
+                opacity: 0.15,
+            });
+            const glow = new THREE.Mesh(glowGeo, glowMat);
+            orb.add(glow);
 
-            wireframe.rotation.set(
-                Math.random() * Math.PI,
-                Math.random() * Math.PI,
-                Math.random() * Math.PI
-            );
+            // Outer halo
+            const haloGeo = new THREE.SphereGeometry(data.radius * 1.4, 16, 16);
+            const haloMat = new THREE.MeshBasicMaterial({
+                color: data.color,
+                transparent: true,
+                opacity: 0.04,
+                side: THREE.BackSide
+            });
+            const halo = new THREE.Mesh(haloGeo, haloMat);
+            orb.add(halo);
 
-            wireframe._rotSpeed = {
-                x: (Math.random() - 0.5) * 0.008,
-                y: (Math.random() - 0.5) * 0.008,
-                z: (Math.random() - 0.5) * 0.004
-            };
-            wireframe._floatSpeed = Math.random() * 0.4 + 0.15;
-            wireframe._floatOffset = Math.random() * Math.PI * 2;
-            wireframe._baseY = wireframe.position.y;
+            orb._basePos = { x: data.pos[0], y: data.pos[1], z: data.pos[2] };
+            orb._speed = data.speed;
+            orb._offset = i * 0.8;
 
-            scene.add(wireframe);
-            floatingShapes.push(wireframe);
-
-            // Also add a faint solid fill for some shapes
-            if (Math.random() > 0.6) {
-                const solidMat = new THREE.MeshBasicMaterial({
-                    color: color,
-                    transparent: true,
-                    opacity: 0.04,
-                    side: THREE.DoubleSide
-                });
-                const solidMesh = new THREE.Mesh(geo, solidMat);
-                solidMesh.position.copy(wireframe.position);
-                solidMesh.rotation.copy(wireframe.rotation);
-                solidMesh._parent = wireframe;
-                scene.add(solidMesh);
-                floatingShapes.push(solidMesh);
-            }
-        }
-    }
-
-    // --- SOFT GRID FLOOR ---
-    function createSoftGrid() {
-        const gridSize = 2000;
-        const divisions = 50;
-
-        const grid = new THREE.GridHelper(gridSize, divisions, 0xc4b5fd, 0xe9e2ff);
-        grid.position.y = -180;
-        grid.material.opacity = 0.15;
-        grid.material.transparent = true;
-        scene.add(grid);
-
-        const grid2 = new THREE.GridHelper(gridSize, divisions / 2, 0xa78bfa, 0xf0ebff);
-        grid2.position.y = -180;
-        grid2.material.opacity = 0.06;
-        grid2.material.transparent = true;
-        scene.add(grid2);
-    }
-
-    // --- BUBBLE PARTICLES (scattered everywhere) ---
-    function createBubbleParticles() {
-        const count = 1500;
-        const geometry = new THREE.BufferGeometry();
-        const positions = new Float32Array(count * 3);
-        const colors = new Float32Array(count * 3);
-        const sizes = new Float32Array(count);
-
-        const cols = [
-            new THREE.Color(0xc4b5fd),
-            new THREE.Color(0xfda4af),
-            new THREE.Color(0x99f6e4),
-            new THREE.Color(0xfde68a),
-            new THREE.Color(0xa5f3fc),
-            new THREE.Color(0xfbcfe8),
-        ];
-
-        for (let i = 0; i < count; i++) {
-            positions[i * 3] = (Math.random() - 0.5) * 1600;
-            positions[i * 3 + 1] = (Math.random() - 0.5) * 1000;
-            positions[i * 3 + 2] = (Math.random() - 0.5) * 1600;
-
-            const col = cols[Math.floor(Math.random() * cols.length)];
-            colors[i * 3] = col.r;
-            colors[i * 3 + 1] = col.g;
-            colors[i * 3 + 2] = col.b;
-
-            sizes[i] = Math.random() * 4 + 1.5;
-        }
-
-        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-        const material = new THREE.PointsMaterial({
-            size: 2.5,
-            transparent: true,
-            opacity: 0.35,
-            vertexColors: true,
-            blending: THREE.NormalBlending,
-            depthWrite: false,
-            sizeAttenuation: true
+            scene.add(orb);
+            orbs.push(orb);
         });
-
-        const pts = new THREE.Points(geometry, material);
-        pts.name = 'bubbleParticles';
-        scene.add(pts);
     }
 
-    // --- COLOR CLOUDS (bright nebulae) ---
-    function createColorClouds() {
-        const cloudGeo = new THREE.PlaneGeometry(700, 700);
+    // --- LIGHT BEAMS ---
+    function createLightBeams() {
+        const beamColors = [0x7c3aed, 0xf43f5e, 0x06b6d4, 0xf97316, 0xec4899];
 
-        const clouds = [
-            { color: 0xc4b5fd, x: -250, y: 120, z: -500 },  // lavender
-            { color: 0xfda4af, x: 300, y: -80, z: -600 },    // pink
-            { color: 0x99f6e4, x: 100, y: 200, z: -450 },    // mint
-            { color: 0xfde68a, x: -300, y: -120, z: -350 },   // amber
-            { color: 0xa5f3fc, x: 200, y: 50, z: -700 },      // sky
-        ];
+        for (let i = 0; i < 8; i++) {
+            const height = 400 + Math.random() * 300;
+            const width = 2 + Math.random() * 4;
+            const geo = new THREE.PlaneGeometry(width, height);
 
-        clouds.forEach((n, i) => {
-            const size = 256;
+            const color = beamColors[Math.floor(Math.random() * beamColors.length)];
+            const col = new THREE.Color(color);
+
+            // Create gradient texture for beam
             const cnv = document.createElement('canvas');
-            cnv.width = size;
-            cnv.height = size;
-            const ctxN = cnv.getContext('2d');
-
-            const col = new THREE.Color(n.color);
-            const r = Math.floor(col.r * 255);
-            const g = Math.floor(col.g * 255);
-            const b = Math.floor(col.b * 255);
-
-            const gradient = ctxN.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-            gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.18)`);
-            gradient.addColorStop(0.4, `rgba(${r}, ${g}, ${b}, 0.08)`);
-            gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
-
-            ctxN.fillStyle = gradient;
-            ctxN.fillRect(0, 0, size, size);
+            cnv.width = 4;
+            cnv.height = 128;
+            const ctx = cnv.getContext('2d');
+            const grad = ctx.createLinearGradient(0, 0, 0, 128);
+            grad.addColorStop(0, `rgba(${Math.floor(col.r * 255)}, ${Math.floor(col.g * 255)}, ${Math.floor(col.b * 255)}, 0)`);
+            grad.addColorStop(0.3, `rgba(${Math.floor(col.r * 255)}, ${Math.floor(col.g * 255)}, ${Math.floor(col.b * 255)}, 0.12)`);
+            grad.addColorStop(0.7, `rgba(${Math.floor(col.r * 255)}, ${Math.floor(col.g * 255)}, ${Math.floor(col.b * 255)}, 0.12)`);
+            grad.addColorStop(1, `rgba(${Math.floor(col.r * 255)}, ${Math.floor(col.g * 255)}, ${Math.floor(col.b * 255)}, 0)`);
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 4, 128);
 
             const texture = new THREE.CanvasTexture(cnv);
 
             const mat = new THREE.MeshBasicMaterial({
                 map: texture,
                 transparent: true,
-                opacity: 0.7,
-                blending: THREE.NormalBlending,
+                opacity: 0.5,
+                blending: THREE.AdditiveBlending,
                 depthWrite: false,
                 side: THREE.DoubleSide
             });
 
-            const mesh = new THREE.Mesh(cloudGeo, mat);
-            mesh.position.set(n.x, n.y, n.z);
-            mesh.rotation.z = Math.random() * Math.PI;
-            mesh._driftSpeed = 0.0003 + Math.random() * 0.0004;
-            mesh._driftOffset = i * 1.2;
-            mesh.name = 'colorCloud';
-            scene.add(mesh);
-        });
+            const beam = new THREE.Mesh(geo, mat);
+            beam.position.set(
+                (Math.random() - 0.5) * 800,
+                height / 2 - 100,
+                (Math.random() - 0.5) * 600 - 200
+            );
+            beam.rotation.z = (Math.random() - 0.5) * 0.3;
+            beam._swaySpeed = Math.random() * 0.3 + 0.1;
+            beam._swayOffset = Math.random() * Math.PI * 2;
+            beam._baseRotZ = beam.rotation.z;
+            beam.name = 'beam';
+
+            scene.add(beam);
+            beams.push(beam);
+        }
     }
 
-    // --- GLOWING RINGS ---
-    function createRings() {
-        const ringColors = [0x7c3aed, 0xf43f5e, 0x06b6d4, 0xf97316];
+    // --- FLOATING RINGS ---
+    function createFloatingRings() {
+        const ringColors = [0x7c3aed, 0xf43f5e, 0x06b6d4, 0xf97316, 0x10b981];
 
-        for (let i = 0; i < 6; i++) {
-            const radius = 80 + Math.random() * 200;
-            const tubeRadius = 0.5 + Math.random() * 1;
-            const geo = new THREE.TorusGeometry(radius, tubeRadius, 16, 100);
+        for (let i = 0; i < 8; i++) {
+            const radius = 30 + Math.random() * 80;
+            const tube = 1 + Math.random() * 2;
+            const geo = new THREE.TorusGeometry(radius, tube, 16, 64);
             const color = ringColors[Math.floor(Math.random() * ringColors.length)];
 
             const mat = new THREE.MeshBasicMaterial({
                 color: color,
                 transparent: true,
-                opacity: 0.08 + Math.random() * 0.06,
+                opacity: 0.06 + Math.random() * 0.06,
+                wireframe: Math.random() > 0.5,
                 side: THREE.DoubleSide
             });
 
             const ring = new THREE.Mesh(geo, mat);
             ring.position.set(
-                (Math.random() - 0.5) * 400,
-                (Math.random() - 0.5) * 300,
-                -200 + (Math.random() - 0.5) * 600
+                (Math.random() - 0.5) * 600,
+                30 + Math.random() * 200,
+                (Math.random() - 0.5) * 400 - 100
             );
             ring.rotation.set(
                 Math.random() * Math.PI,
                 Math.random() * Math.PI,
                 0
             );
-            ring._rotSpeed = (Math.random() - 0.5) * 0.003;
-            ring._axis = Math.random() > 0.5 ? 'x' : 'y';
-            ring.name = 'glowRing';
+            ring._rotSpeedX = (Math.random() - 0.5) * 0.004;
+            ring._rotSpeedY = (Math.random() - 0.5) * 0.003;
+            ring.name = 'floatingRing';
             scene.add(ring);
         }
     }
 
-    // --- MAIN 3D ANIMATION LOOP ---
-    function animate3D() {
-        requestAnimationFrame(animate3D);
+    // --- SPARKLE PARTICLES ---
+    function createSparkles() {
+        const count = 800;
+        const geo = new THREE.BufferGeometry();
+        const positions = new Float32Array(count * 3);
+        const colors = new Float32Array(count * 3);
 
-        const elapsed = clock.getElapsedTime();
+        const sparkleColors = [
+            new THREE.Color(0xc4b5fd), new THREE.Color(0xfda4af),
+            new THREE.Color(0x99f6e4), new THREE.Color(0xfde68a),
+            new THREE.Color(0xa5f3fc), new THREE.Color(0xfbcfe8),
+            new THREE.Color(0xffffff),
+        ];
 
-        // Smooth mouse follow
-        targetMouseX += (mouseX - targetMouseX) * 0.04;
-        targetMouseY += (mouseY - targetMouseY) * 0.04;
+        for (let i = 0; i < count; i++) {
+            positions[i * 3] = (Math.random() - 0.5) * 1200;
+            positions[i * 3 + 1] = Math.random() * 350;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 1000;
 
-        // Camera
-        camera.position.x = targetMouseX * 60;
-        camera.position.y = 50 + targetMouseY * -30;
-        camera.rotation.x = targetMouseY * 0.08;
-        camera.rotation.y = targetMouseX * -0.12;
-
-        // Drift
-        camera.position.x += Math.sin(elapsed * 0.15) * 12;
-        camera.position.y += Math.cos(elapsed * 0.12) * 8;
-
-        // Update warp particles
-        if (warpParticles) {
-            warpParticles.material.uniforms.uTime.value = elapsed;
+            const col = sparkleColors[Math.floor(Math.random() * sparkleColors.length)];
+            colors[i * 3] = col.r;
+            colors[i * 3 + 1] = col.g;
+            colors[i * 3 + 2] = col.b;
         }
 
-        // Animate shapes
-        floatingShapes.forEach((shape, i) => {
-            if (shape._parent) {
-                // Solid fill follows wireframe
-                shape.rotation.copy(shape._parent.rotation);
-                shape.position.copy(shape._parent.position);
-                return;
-            }
+        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-            shape.rotation.x += shape._rotSpeed.x;
-            shape.rotation.y += shape._rotSpeed.y;
-            shape.rotation.z += shape._rotSpeed.z;
-
-            shape.position.y = shape._baseY + Math.sin(elapsed * shape._floatSpeed + shape._floatOffset) * 25;
+        const mat = new THREE.PointsMaterial({
+            size: 2.5,
+            transparent: true,
+            opacity: 0.5,
+            vertexColors: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            sizeAttenuation: true
         });
 
-        // Animate clouds
+        const sparkles = new THREE.Points(geo, mat);
+        sparkles.name = 'sparkles';
+        scene.add(sparkles);
+    }
+
+    // --- MAIN ANIMATION LOOP ---
+    function animate3D() {
+        requestAnimationFrame(animate3D);
+        const elapsed = clock.getElapsedTime();
+
+        // Smooth mouse
+        targetMouseX += (mouseX - targetMouseX) * 0.03;
+        targetMouseY += (mouseY - targetMouseY) * 0.03;
+
+        // Camera sway
+        camera.position.x = targetMouseX * 50 + Math.sin(elapsed * 0.1) * 20;
+        camera.position.y = 120 + targetMouseY * -25 + Math.cos(elapsed * 0.08) * 10;
+        camera.position.z = 400 + Math.sin(elapsed * 0.05) * 15;
+        camera.lookAt(0, 20, -100);
+
+        // Update wave terrain
+        if (waveMesh) {
+            waveMesh.material.uniforms.uTime.value = elapsed;
+        }
+        if (waveMesh2) {
+            waveMesh2.material.uniforms.uTime.value = elapsed;
+        }
+
+        // Animate orbs
+        orbs.forEach((orb) => {
+            const t = elapsed * orb._speed + orb._offset;
+            orb.position.x = orb._basePos.x + Math.sin(t) * 30;
+            orb.position.y = orb._basePos.y + Math.sin(t * 1.3) * 20 + Math.cos(t * 0.7) * 10;
+            orb.position.z = orb._basePos.z + Math.cos(t * 0.8) * 25;
+            orb.rotation.y = elapsed * 0.2;
+
+            // Pulse scale
+            const scale = 1 + Math.sin(t * 2) * 0.08;
+            orb.scale.set(scale, scale, scale);
+        });
+
+        // Animate beams
+        beams.forEach((beam) => {
+            beam.rotation.z = beam._baseRotZ + Math.sin(elapsed * beam._swaySpeed + beam._swayOffset) * 0.05;
+            beam.material.opacity = 0.3 + Math.sin(elapsed * 0.5 + beam._swayOffset) * 0.15;
+        });
+
+        // Animate rings
         scene.children.forEach(child => {
-            if (child.name === 'colorCloud') {
-                child.position.x += Math.sin(elapsed * child._driftSpeed * 80 + child._driftOffset) * 0.25;
-                child.position.y += Math.cos(elapsed * child._driftSpeed * 60 + child._driftOffset) * 0.2;
-                child.rotation.z += child._driftSpeed * 0.5;
+            if (child.name === 'floatingRing') {
+                child.rotation.x += child._rotSpeedX;
+                child.rotation.y += child._rotSpeedY;
             }
-
-            if (child.name === 'bubbleParticles') {
-                child.rotation.y = elapsed * 0.015;
-                child.rotation.x = Math.sin(elapsed * 0.008) * 0.04;
-            }
-
-            if (child.name === 'glowRing') {
-                child.rotation[child._axis] += child._rotSpeed;
+            if (child.name === 'sparkles') {
+                child.rotation.y = elapsed * 0.01;
+                // Twinkle effect via opacity
+                child.material.opacity = 0.4 + Math.sin(elapsed * 1.5) * 0.15;
             }
         });
-
-        camera.lookAt(0, 0, -200);
 
         renderer.render(scene, camera);
     }
 
-    // --- MOUSE ---
     document.addEventListener('mousemove', (e) => {
         mouseX = (e.clientX / window.innerWidth) * 2 - 1;
         mouseY = (e.clientY / window.innerHeight) * 2 - 1;
     });
 
-    // --- RESIZE ---
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
@@ -543,14 +541,12 @@
     function updateActiveNavLink() {
         const sections = document.querySelectorAll('section[id], footer[id]');
         let current = '';
-
         sections.forEach(section => {
             const sectionTop = section.offsetTop - 200;
             if (window.scrollY >= sectionTop) {
                 current = section.getAttribute('id');
             }
         });
-
         navLinks.forEach(link => {
             link.classList.remove('active');
             if (link.getAttribute('data-section') === current) {
@@ -567,7 +563,6 @@
     function updateCountdown() {
         const now = new Date().getTime();
         const diff = eventDate - now;
-
         if (diff <= 0) {
             document.getElementById('countDays').textContent = '00';
             document.getElementById('countHours').textContent = '00';
@@ -575,42 +570,32 @@
             document.getElementById('countSeconds').textContent = '00';
             return;
         }
-
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
         document.getElementById('countDays').textContent = String(days).padStart(2, '0');
         document.getElementById('countHours').textContent = String(hours).padStart(2, '0');
         document.getElementById('countMinutes').textContent = String(minutes).padStart(2, '0');
         document.getElementById('countSeconds').textContent = String(seconds).padStart(2, '0');
     }
-
     updateCountdown();
     setInterval(updateCountdown, 1000);
 
     // ===================================
-    // 6. SCROLL REVEAL ANIMATIONS
+    // 6. SCROLL REVEAL
     // ===================================
     function initScrollReveal() {
         const reveals = document.querySelectorAll('.reveal-up, .reveal-left, .reveal-right');
-
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     const delay = parseFloat(entry.target.getAttribute('data-delay') || 0);
-                    setTimeout(() => {
-                        entry.target.classList.add('revealed');
-                    }, delay * 1000);
+                    setTimeout(() => { entry.target.classList.add('revealed'); }, delay * 1000);
                     observer.unobserve(entry.target);
                 }
             });
-        }, {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        });
-
+        }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
         reveals.forEach(el => observer.observe(el));
     }
 
@@ -618,9 +603,7 @@
         const heroReveals = document.querySelectorAll('.hero .reveal-up');
         heroReveals.forEach(el => {
             const delay = parseFloat(el.getAttribute('data-delay') || 0);
-            setTimeout(() => {
-                el.classList.add('revealed');
-            }, delay * 1000 + 200);
+            setTimeout(() => { el.classList.add('revealed'); }, delay * 1000 + 200);
         });
     }
 
@@ -629,14 +612,11 @@
     // ===================================
     const eventTabs = document.querySelectorAll('.event-tab');
     const eventCards = document.querySelectorAll('.event-card');
-
     eventTabs.forEach(tab => {
         tab.addEventListener('click', () => {
             eventTabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-
             const category = tab.getAttribute('data-category');
-
             eventCards.forEach(card => {
                 if (category === 'all' || card.getAttribute('data-category') === category) {
                     card.classList.remove('hidden-card');
@@ -649,28 +629,23 @@
     });
 
     // ===================================
-    // 8. SCHEDULE DAY TABS
+    // 8. SCHEDULE TABS
     // ===================================
     const scheduleTabs = document.querySelectorAll('.schedule-tab');
     const timelineDays = document.querySelectorAll('.timeline-day');
-
     scheduleTabs.forEach(tab => {
         tab.addEventListener('click', () => {
             scheduleTabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-
             const day = tab.getAttribute('data-day');
             timelineDays.forEach(d => {
                 d.classList.remove('active');
                 if (d.getAttribute('data-day') === day) {
                     d.classList.add('active');
-
                     const items = d.querySelectorAll('.reveal-left, .reveal-right');
                     items.forEach((item, i) => {
                         item.classList.remove('revealed');
-                        setTimeout(() => {
-                            item.classList.add('revealed');
-                        }, i * 100 + 100);
+                        setTimeout(() => { item.classList.add('revealed'); }, i * 100 + 100);
                     });
                 }
             });
@@ -686,34 +661,25 @@
 
     registerForm.addEventListener('submit', (e) => {
         e.preventDefault();
-
         const name = document.getElementById('regName').value.trim();
         const email = document.getElementById('regEmail').value.trim();
         const phone = document.getElementById('regPhone').value.trim();
         const college = document.getElementById('regCollege').value.trim();
         const year = document.getElementById('regYear').value;
         const dept = document.getElementById('regDept').value.trim();
-
         if (!name || !email || !phone || !college || !year || !dept) return;
-
         const checkedEvents = registerForm.querySelectorAll('input[name="events"]:checked');
         if (checkedEvents.length === 0) {
             alert('Please select at least one event!');
             return;
         }
-
         successModal.classList.add('active');
         registerForm.reset();
     });
 
-    modalClose.addEventListener('click', () => {
-        successModal.classList.remove('active');
-    });
-
+    modalClose.addEventListener('click', () => { successModal.classList.remove('active'); });
     successModal.addEventListener('click', (e) => {
-        if (e.target === successModal) {
-            successModal.classList.remove('active');
-        }
+        if (e.target === successModal) successModal.classList.remove('active');
     });
 
     // ===================================
@@ -732,7 +698,7 @@
     });
 
     // ===================================
-    // 11. PARALLAX ON HERO
+    // 11. PARALLAX
     // ===================================
     window.addEventListener('scroll', () => {
         const scrollY = window.scrollY;
@@ -746,12 +712,10 @@
     // ===================================
     // 12. LUCIDE ICONS
     // ===================================
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
+    if (typeof lucide !== 'undefined') { lucide.createIcons(); }
 
     // ===================================
-    // 13. KEYFRAME INJECTION
+    // 13. KEYFRAME
     // ===================================
     const styleSheet = document.createElement('style');
     styleSheet.textContent = `
