@@ -1,6 +1,7 @@
 /* ========================================
-   INTELLEX 2026 — BRIGHT THEME Script
-   NEW 3D: Morphing Wave + Glass Spheres
+   INTELLEX 2026 — VIBRANT 3D SCENE
+   Morphing Icosahedron + Orbiting Spheres
+   + DNA Helix + Scroll-linked camera
    ======================================== */
 
 (function () {
@@ -13,451 +14,338 @@
         setTimeout(() => {
             const preloader = document.getElementById('preloader');
             preloader.classList.add('hidden');
-            setTimeout(() => {
-                preloader.style.display = 'none';
-                initAllAnimations();
-            }, 800);
+            setTimeout(() => { preloader.style.display = 'none'; initAllAnimations(); }, 800);
         }, 2200);
     });
-
-    function initAllAnimations() {
-        initScrollReveal();
-        triggerHeroReveal();
-    }
+    function initAllAnimations() { initScrollReveal(); triggerHeroReveal(); }
 
     // ===================================
-    // 2. THREE.JS — NEW 3D BACKGROUND
-    //    Morphing Wave + Glass Orbs + Beams
+    // 2. THREE.JS — VIBRANT 3D SCENE
     // ===================================
     const container = document.getElementById('bg3d');
     let scene, camera, renderer, clock;
-    let waveMesh, waveMesh2;
-    let orbs = [];
-    let beams = [];
-    let mouseX = 0, mouseY = 0;
-    let targetMouseX = 0, targetMouseY = 0;
+    let centerShape, dnaGroup;
+    let orbitingSpheres = [];
+    let mouseX = 0, mouseY = 0, tMouseX = 0, tMouseY = 0;
 
     function init3D() {
         scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0xf5f0ff, 0.00035);
 
-        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 3000);
-        camera.position.set(0, 120, 400);
-        camera.lookAt(0, 0, 0);
+        camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(0, 0, 300);
 
-        renderer = new THREE.WebGLRenderer({
-            antialias: true,
-            alpha: true,
-            powerPreference: 'high-performance'
-        });
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.setClearColor(0xf5f0ff, 1);
+        renderer.setClearColor(0x000000, 0); // transparent — CSS gradient shows through
         container.appendChild(renderer.domElement);
 
         clock = new THREE.Clock();
 
-        // Add lights for the spheres
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-        scene.add(ambientLight);
+        // Lights
+        const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambient);
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight.position.set(200, 300, 200);
-        scene.add(dirLight);
+        const p1 = new THREE.PointLight(0xff6b6b, 2, 500);
+        p1.position.set(100, 100, 100);
+        scene.add(p1);
 
-        const pointLight1 = new THREE.PointLight(0x7c3aed, 1.5, 600);
-        pointLight1.position.set(-150, 100, 100);
-        scene.add(pointLight1);
+        const p2 = new THREE.PointLight(0x339af0, 2, 500);
+        p2.position.set(-100, -50, 150);
+        scene.add(p2);
 
-        const pointLight2 = new THREE.PointLight(0xf43f5e, 1.2, 600);
-        pointLight2.position.set(200, 80, -100);
-        scene.add(pointLight2);
+        const p3 = new THREE.PointLight(0x845ef7, 1.5, 400);
+        p3.position.set(0, 150, -100);
+        scene.add(p3);
 
-        const pointLight3 = new THREE.PointLight(0x06b6d4, 1, 500);
-        pointLight3.position.set(0, 150, -200);
-        scene.add(pointLight3);
-
-        createWaveTerrain();
-        createGlassOrbs();
-        createLightBeams();
-        createFloatingRings();
-        createSparkles();
+        createCenterShape();
+        createDNAHelix();
+        createOrbitingSpheres();
+        createFloatingCubes();
+        createParticleField();
 
         animate3D();
     }
 
-    // --- MORPHING WAVE TERRAIN ---
-    function createWaveTerrain() {
-        const segments = 120;
-        const size = 1200;
+    // --- MORPHING CENTER ICOSAHEDRON ---
+    function createCenterShape() {
+        const geo = new THREE.IcosahedronGeometry(50, 4);
+        const originalPositions = geo.attributes.position.array.slice();
 
-        // First wave layer — purple/pink gradient
-        const geo1 = new THREE.PlaneGeometry(size, size, segments, segments);
-        const mat1 = new THREE.ShaderMaterial({
-            uniforms: {
-                uTime: { value: 0 },
-                uColor1: { value: new THREE.Color(0x7c3aed) },
-                uColor2: { value: new THREE.Color(0xf43f5e) },
-                uColor3: { value: new THREE.Color(0xf97316) },
-                uOpacity: { value: 0.25 }
-            },
-            vertexShader: `
-                uniform float uTime;
-                varying vec2 vUv;
-                varying float vElevation;
-                
-                void main() {
-                    vUv = uv;
-                    vec3 pos = position;
-                    
-                    // Complex wave pattern
-                    float wave1 = sin(pos.x * 0.008 + uTime * 0.5) * 25.0;
-                    float wave2 = sin(pos.y * 0.006 + uTime * 0.3) * 20.0;
-                    float wave3 = sin((pos.x + pos.y) * 0.005 + uTime * 0.7) * 15.0;
-                    float wave4 = cos(pos.x * 0.01 - uTime * 0.4) * sin(pos.y * 0.008 + uTime * 0.6) * 18.0;
-                    float ripple = sin(length(pos.xy) * 0.008 - uTime * 0.8) * 12.0;
-                    
-                    pos.z = wave1 + wave2 + wave3 + wave4 + ripple;
-                    vElevation = pos.z;
-                    
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-                }
-            `,
-            fragmentShader: `
-                uniform vec3 uColor1;
-                uniform vec3 uColor2;
-                uniform vec3 uColor3;
-                uniform float uOpacity;
-                uniform float uTime;
-                varying vec2 vUv;
-                varying float vElevation;
-                
-                void main() {
-                    // Gradient based on position and elevation
-                    float mixVal = (vElevation + 40.0) / 80.0;
-                    vec3 color = mix(uColor1, uColor2, vUv.x);
-                    color = mix(color, uColor3, vUv.y * 0.5);
-                    color = mix(color, vec3(1.0), mixVal * 0.3);
-                    
-                    // Add shimmer
-                    float shimmer = sin(vUv.x * 50.0 + uTime * 2.0) * 0.03;
-                    color += shimmer;
-                    
-                    gl_FragColor = vec4(color, uOpacity + mixVal * 0.08);
-                }
-            `,
+        const mat = new THREE.MeshPhysicalMaterial({
+            color: 0xffffff,
+            metalness: 0.2,
+            roughness: 0.1,
             transparent: true,
-            side: THREE.DoubleSide,
+            opacity: 0.15,
             wireframe: false,
-            depthWrite: false
+            side: THREE.DoubleSide,
         });
 
-        waveMesh = new THREE.Mesh(geo1, mat1);
-        waveMesh.rotation.x = -Math.PI / 2.2;
-        waveMesh.position.y = -80;
-        scene.add(waveMesh);
+        centerShape = new THREE.Mesh(geo, mat);
+        centerShape._originalPositions = originalPositions;
+        scene.add(centerShape);
 
-        // Second wave layer — wireframe overlay
-        const geo2 = new THREE.PlaneGeometry(size, size, 60, 60);
-        const mat2 = new THREE.ShaderMaterial({
-            uniforms: {
-                uTime: { value: 0 },
-                uColor: { value: new THREE.Color(0x7c3aed) },
-            },
-            vertexShader: `
-                uniform float uTime;
-                varying vec2 vUv;
-                
-                void main() {
-                    vUv = uv;
-                    vec3 pos = position;
-                    
-                    float wave1 = sin(pos.x * 0.008 + uTime * 0.5) * 25.0;
-                    float wave2 = sin(pos.y * 0.006 + uTime * 0.3) * 20.0;
-                    float wave3 = sin((pos.x + pos.y) * 0.005 + uTime * 0.7) * 15.0;
-                    float wave4 = cos(pos.x * 0.01 - uTime * 0.4) * sin(pos.y * 0.008 + uTime * 0.6) * 18.0;
-                    float ripple = sin(length(pos.xy) * 0.008 - uTime * 0.8) * 12.0;
-                    
-                    pos.z = wave1 + wave2 + wave3 + wave4 + ripple + 1.0;
-                    
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-                }
-            `,
-            fragmentShader: `
-                uniform vec3 uColor;
-                varying vec2 vUv;
-                
-                void main() {
-                    gl_FragColor = vec4(uColor, 0.06);
-                }
-            `,
-            transparent: true,
+        // Wireframe overlay
+        const wireGeo = new THREE.IcosahedronGeometry(50, 2);
+        const wireMat = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
             wireframe: true,
-            depthWrite: false
+            transparent: true,
+            opacity: 0.12,
         });
-
-        waveMesh2 = new THREE.Mesh(geo2, mat2);
-        waveMesh2.rotation.x = -Math.PI / 2.2;
-        waveMesh2.position.y = -80;
-        scene.add(waveMesh2);
+        const wire = new THREE.Mesh(wireGeo, wireMat);
+        centerShape.add(wire);
+        centerShape._wire = wire;
     }
 
-    // --- GLASS ORBS (reflective floating spheres) ---
-    function createGlassOrbs() {
-        const orbData = [
-            { radius: 20, pos: [-120, 60, -50], color: 0x7c3aed, speed: 0.4 },
-            { radius: 15, pos: [180, 90, -100], color: 0xf43f5e, speed: 0.5 },
-            { radius: 25, pos: [50, 130, -200], color: 0x06b6d4, speed: 0.3 },
-            { radius: 12, pos: [-200, 40, 50], color: 0xf97316, speed: 0.6 },
-            { radius: 18, pos: [250, 70, -30], color: 0x10b981, speed: 0.35 },
-            { radius: 10, pos: [-80, 110, -150], color: 0xec4899, speed: 0.55 },
-            { radius: 22, pos: [0, 160, -250], color: 0x8b5cf6, speed: 0.25 },
-            { radius: 8, pos: [150, 30, 100], color: 0xeab308, speed: 0.7 },
-            { radius: 14, pos: [-250, 100, -80], color: 0x7c3aed, speed: 0.45 },
-            { radius: 16, pos: [100, 50, 80], color: 0xf43f5e, speed: 0.5 },
-            { radius: 9, pos: [-150, 150, 30], color: 0x06b6d4, speed: 0.65 },
-            { radius: 13, pos: [220, 120, -180], color: 0x10b981, speed: 0.4 },
-        ];
+    // --- DNA DOUBLE HELIX ---
+    function createDNAHelix() {
+        dnaGroup = new THREE.Group();
+        const helixLength = 600;
+        const turns = 4;
+        const pointsPerTurn = 30;
+        const totalPoints = turns * pointsPerTurn;
+        const radius = 25;
 
-        orbData.forEach((data, i) => {
-            const geo = new THREE.SphereGeometry(data.radius, 32, 32);
+        const colors1 = [0xff6b6b, 0xf06595, 0xcc5de8, 0x845ef7, 0x5c7cfa, 0x339af0, 0x22b8cf, 0x20c997];
+        const colors2 = [0xffd43b, 0xffa94d, 0xff6b6b, 0xf06595, 0xcc5de8, 0x845ef7, 0x5c7cfa, 0x339af0];
 
-            // Glass-like material
+        for (let i = 0; i < totalPoints; i++) {
+            const t = i / totalPoints;
+            const angle = t * Math.PI * 2 * turns;
+            const y = (t - 0.5) * helixLength;
+
+            // Strand 1
+            const x1 = Math.cos(angle) * radius;
+            const z1 = Math.sin(angle) * radius;
+            const sphere1 = new THREE.Mesh(
+                new THREE.SphereGeometry(2, 8, 8),
+                new THREE.MeshBasicMaterial({
+                    color: colors1[i % colors1.length],
+                    transparent: true,
+                    opacity: 0.5
+                })
+            );
+            sphere1.position.set(x1, y, z1);
+            dnaGroup.add(sphere1);
+
+            // Strand 2
+            const x2 = Math.cos(angle + Math.PI) * radius;
+            const z2 = Math.sin(angle + Math.PI) * radius;
+            const sphere2 = new THREE.Mesh(
+                new THREE.SphereGeometry(2, 8, 8),
+                new THREE.MeshBasicMaterial({
+                    color: colors2[i % colors2.length],
+                    transparent: true,
+                    opacity: 0.5
+                })
+            );
+            sphere2.position.set(x2, y, z2);
+            dnaGroup.add(sphere2);
+
+            // Cross-links every N points
+            if (i % 4 === 0) {
+                const linkGeo = new THREE.CylinderGeometry(0.3, 0.3, radius * 2, 4);
+                const linkMat = new THREE.MeshBasicMaterial({
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: 0.1
+                });
+                const link = new THREE.Mesh(linkGeo, linkMat);
+                link.position.set((x1 + x2) / 2, y, (z1 + z2) / 2);
+                link.rotation.z = Math.PI / 2;
+                link.rotation.y = angle;
+                dnaGroup.add(link);
+            }
+        }
+
+        dnaGroup.position.set(180, 0, -100);
+        dnaGroup.rotation.z = 0.3;
+        scene.add(dnaGroup);
+    }
+
+    // --- ORBITING SPHERES ---
+    function createOrbitingSpheres() {
+        const colors = [0xff6b6b, 0x339af0, 0xffd43b, 0x20c997, 0xcc5de8, 0xff922b, 0x51cf66, 0xf06595];
+
+        for (let i = 0; i < 14; i++) {
+            const radius = 6 + Math.random() * 12;
+            const geo = new THREE.SphereGeometry(radius, 16, 16);
+            const color = colors[i % colors.length];
+
             const mat = new THREE.MeshPhysicalMaterial({
-                color: data.color,
-                metalness: 0.1,
-                roughness: 0.05,
-                transparent: true,
-                opacity: 0.45,
-                envMapIntensity: 1,
-                clearcoat: 1,
-                clearcoatRoughness: 0.1,
-            });
-
-            const orb = new THREE.Mesh(geo, mat);
-            orb.position.set(...data.pos);
-
-            // Inner glow sphere
-            const glowGeo = new THREE.SphereGeometry(data.radius * 0.6, 16, 16);
-            const glowMat = new THREE.MeshBasicMaterial({
-                color: data.color,
-                transparent: true,
-                opacity: 0.15,
-            });
-            const glow = new THREE.Mesh(glowGeo, glowMat);
-            orb.add(glow);
-
-            // Outer halo
-            const haloGeo = new THREE.SphereGeometry(data.radius * 1.4, 16, 16);
-            const haloMat = new THREE.MeshBasicMaterial({
-                color: data.color,
-                transparent: true,
-                opacity: 0.04,
-                side: THREE.BackSide
-            });
-            const halo = new THREE.Mesh(haloGeo, haloMat);
-            orb.add(halo);
-
-            orb._basePos = { x: data.pos[0], y: data.pos[1], z: data.pos[2] };
-            orb._speed = data.speed;
-            orb._offset = i * 0.8;
-
-            scene.add(orb);
-            orbs.push(orb);
-        });
-    }
-
-    // --- LIGHT BEAMS ---
-    function createLightBeams() {
-        const beamColors = [0x7c3aed, 0xf43f5e, 0x06b6d4, 0xf97316, 0xec4899];
-
-        for (let i = 0; i < 8; i++) {
-            const height = 400 + Math.random() * 300;
-            const width = 2 + Math.random() * 4;
-            const geo = new THREE.PlaneGeometry(width, height);
-
-            const color = beamColors[Math.floor(Math.random() * beamColors.length)];
-            const col = new THREE.Color(color);
-
-            // Create gradient texture for beam
-            const cnv = document.createElement('canvas');
-            cnv.width = 4;
-            cnv.height = 128;
-            const ctx = cnv.getContext('2d');
-            const grad = ctx.createLinearGradient(0, 0, 0, 128);
-            grad.addColorStop(0, `rgba(${Math.floor(col.r * 255)}, ${Math.floor(col.g * 255)}, ${Math.floor(col.b * 255)}, 0)`);
-            grad.addColorStop(0.3, `rgba(${Math.floor(col.r * 255)}, ${Math.floor(col.g * 255)}, ${Math.floor(col.b * 255)}, 0.12)`);
-            grad.addColorStop(0.7, `rgba(${Math.floor(col.r * 255)}, ${Math.floor(col.g * 255)}, ${Math.floor(col.b * 255)}, 0.12)`);
-            grad.addColorStop(1, `rgba(${Math.floor(col.r * 255)}, ${Math.floor(col.g * 255)}, ${Math.floor(col.b * 255)}, 0)`);
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, 4, 128);
-
-            const texture = new THREE.CanvasTexture(cnv);
-
-            const mat = new THREE.MeshBasicMaterial({
-                map: texture,
-                transparent: true,
-                opacity: 0.5,
-                blending: THREE.AdditiveBlending,
-                depthWrite: false,
-                side: THREE.DoubleSide
-            });
-
-            const beam = new THREE.Mesh(geo, mat);
-            beam.position.set(
-                (Math.random() - 0.5) * 800,
-                height / 2 - 100,
-                (Math.random() - 0.5) * 600 - 200
-            );
-            beam.rotation.z = (Math.random() - 0.5) * 0.3;
-            beam._swaySpeed = Math.random() * 0.3 + 0.1;
-            beam._swayOffset = Math.random() * Math.PI * 2;
-            beam._baseRotZ = beam.rotation.z;
-            beam.name = 'beam';
-
-            scene.add(beam);
-            beams.push(beam);
-        }
-    }
-
-    // --- FLOATING RINGS ---
-    function createFloatingRings() {
-        const ringColors = [0x7c3aed, 0xf43f5e, 0x06b6d4, 0xf97316, 0x10b981];
-
-        for (let i = 0; i < 8; i++) {
-            const radius = 30 + Math.random() * 80;
-            const tube = 1 + Math.random() * 2;
-            const geo = new THREE.TorusGeometry(radius, tube, 16, 64);
-            const color = ringColors[Math.floor(Math.random() * ringColors.length)];
-
-            const mat = new THREE.MeshBasicMaterial({
                 color: color,
+                metalness: 0.3,
+                roughness: 0.2,
                 transparent: true,
-                opacity: 0.06 + Math.random() * 0.06,
-                wireframe: Math.random() > 0.5,
-                side: THREE.DoubleSide
+                opacity: 0.35,
+                clearcoat: 0.8,
             });
 
-            const ring = new THREE.Mesh(geo, mat);
-            ring.position.set(
-                (Math.random() - 0.5) * 600,
-                30 + Math.random() * 200,
-                (Math.random() - 0.5) * 400 - 100
-            );
-            ring.rotation.set(
-                Math.random() * Math.PI,
-                Math.random() * Math.PI,
-                0
-            );
-            ring._rotSpeedX = (Math.random() - 0.5) * 0.004;
-            ring._rotSpeedY = (Math.random() - 0.5) * 0.003;
-            ring.name = 'floatingRing';
-            scene.add(ring);
+            const sphere = new THREE.Mesh(geo, mat);
+
+            // Orbit parameters
+            sphere._orbitRadius = 80 + Math.random() * 150;
+            sphere._orbitSpeed = 0.15 + Math.random() * 0.3;
+            sphere._orbitOffset = (i / 14) * Math.PI * 2;
+            sphere._orbitTilt = (Math.random() - 0.5) * 1.2;
+            sphere._verticalRange = 50 + Math.random() * 80;
+            sphere._verticalSpeed = 0.2 + Math.random() * 0.4;
+
+            // Glow
+            const glowGeo = new THREE.SphereGeometry(radius * 1.6, 8, 8);
+            const glowMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.05, side: THREE.BackSide });
+            sphere.add(new THREE.Mesh(glowGeo, glowMat));
+
+            scene.add(sphere);
+            orbitingSpheres.push(sphere);
         }
     }
 
-    // --- SPARKLE PARTICLES ---
-    function createSparkles() {
-        const count = 800;
+    // --- FLOATING CUBES ---
+    function createFloatingCubes() {
+        const colors = [0xff6b6b, 0x845ef7, 0x339af0, 0xffd43b, 0x20c997, 0xf06595];
+
+        for (let i = 0; i < 20; i++) {
+            const size = 4 + Math.random() * 10;
+            const geo = new THREE.BoxGeometry(size, size, size);
+            const edgeGeo = new THREE.EdgesGeometry(geo);
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.15 + Math.random() * 0.1 });
+            const cube = new THREE.LineSegments(edgeGeo, mat);
+
+            cube.position.set(
+                (Math.random() - 0.5) * 600,
+                (Math.random() - 0.5) * 400,
+                (Math.random() - 0.5) * 400
+            );
+
+            cube._rotSpeed = {
+                x: (Math.random() - 0.5) * 0.01,
+                y: (Math.random() - 0.5) * 0.01,
+                z: (Math.random() - 0.5) * 0.005
+            };
+            cube._floatSpeed = Math.random() * 0.3 + 0.1;
+            cube._floatOffset = Math.random() * Math.PI * 2;
+            cube._baseY = cube.position.y;
+            cube.name = 'floatingCube';
+            scene.add(cube);
+        }
+    }
+
+    // --- PARTICLE FIELD ---
+    function createParticleField() {
+        const count = 600;
         const geo = new THREE.BufferGeometry();
         const positions = new Float32Array(count * 3);
         const colors = new Float32Array(count * 3);
 
-        const sparkleColors = [
-            new THREE.Color(0xc4b5fd), new THREE.Color(0xfda4af),
-            new THREE.Color(0x99f6e4), new THREE.Color(0xfde68a),
-            new THREE.Color(0xa5f3fc), new THREE.Color(0xfbcfe8),
+        const palette = [
             new THREE.Color(0xffffff),
+            new THREE.Color(0xffd43b),
+            new THREE.Color(0xff6b6b),
+            new THREE.Color(0x339af0),
+            new THREE.Color(0x20c997),
         ];
 
         for (let i = 0; i < count; i++) {
-            positions[i * 3] = (Math.random() - 0.5) * 1200;
-            positions[i * 3 + 1] = Math.random() * 350;
-            positions[i * 3 + 2] = (Math.random() - 0.5) * 1000;
-
-            const col = sparkleColors[Math.floor(Math.random() * sparkleColors.length)];
-            colors[i * 3] = col.r;
-            colors[i * 3 + 1] = col.g;
-            colors[i * 3 + 2] = col.b;
+            positions[i * 3] = (Math.random() - 0.5) * 800;
+            positions[i * 3 + 1] = (Math.random() - 0.5) * 600;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 800;
+            const c = palette[Math.floor(Math.random() * palette.length)];
+            colors[i * 3] = c.r;
+            colors[i * 3 + 1] = c.g;
+            colors[i * 3 + 2] = c.b;
         }
 
         geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
         const mat = new THREE.PointsMaterial({
-            size: 2.5,
+            size: 2,
             transparent: true,
-            opacity: 0.5,
+            opacity: 0.4,
             vertexColors: true,
             blending: THREE.AdditiveBlending,
             depthWrite: false,
             sizeAttenuation: true
         });
 
-        const sparkles = new THREE.Points(geo, mat);
-        sparkles.name = 'sparkles';
-        scene.add(sparkles);
+        const pts = new THREE.Points(geo, mat);
+        pts.name = 'particleField';
+        scene.add(pts);
     }
 
-    // --- MAIN ANIMATION LOOP ---
+    // --- ANIMATION LOOP ---
     function animate3D() {
         requestAnimationFrame(animate3D);
-        const elapsed = clock.getElapsedTime();
+        const t = clock.getElapsedTime();
 
-        // Smooth mouse
-        targetMouseX += (mouseX - targetMouseX) * 0.03;
-        targetMouseY += (mouseY - targetMouseY) * 0.03;
+        tMouseX += (mouseX - tMouseX) * 0.03;
+        tMouseY += (mouseY - tMouseY) * 0.03;
 
-        // Camera sway
-        camera.position.x = targetMouseX * 50 + Math.sin(elapsed * 0.1) * 20;
-        camera.position.y = 120 + targetMouseY * -25 + Math.cos(elapsed * 0.08) * 10;
-        camera.position.z = 400 + Math.sin(elapsed * 0.05) * 15;
-        camera.lookAt(0, 20, -100);
+        // Camera follows mouse + subtle drift
+        camera.position.x = tMouseX * 40 + Math.sin(t * 0.1) * 15;
+        camera.position.y = tMouseY * -30 + Math.cos(t * 0.08) * 10;
+        camera.lookAt(0, 0, 0);
 
-        // Update wave terrain
-        if (waveMesh) {
-            waveMesh.material.uniforms.uTime.value = elapsed;
-        }
-        if (waveMesh2) {
-            waveMesh2.material.uniforms.uTime.value = elapsed;
-        }
-
-        // Animate orbs
-        orbs.forEach((orb) => {
-            const t = elapsed * orb._speed + orb._offset;
-            orb.position.x = orb._basePos.x + Math.sin(t) * 30;
-            orb.position.y = orb._basePos.y + Math.sin(t * 1.3) * 20 + Math.cos(t * 0.7) * 10;
-            orb.position.z = orb._basePos.z + Math.cos(t * 0.8) * 25;
-            orb.rotation.y = elapsed * 0.2;
-
-            // Pulse scale
-            const scale = 1 + Math.sin(t * 2) * 0.08;
-            orb.scale.set(scale, scale, scale);
-        });
-
-        // Animate beams
-        beams.forEach((beam) => {
-            beam.rotation.z = beam._baseRotZ + Math.sin(elapsed * beam._swaySpeed + beam._swayOffset) * 0.05;
-            beam.material.opacity = 0.3 + Math.sin(elapsed * 0.5 + beam._swayOffset) * 0.15;
-        });
-
-        // Animate rings
-        scene.children.forEach(child => {
-            if (child.name === 'floatingRing') {
-                child.rotation.x += child._rotSpeedX;
-                child.rotation.y += child._rotSpeedY;
+        // Morph center icosahedron
+        if (centerShape) {
+            const positions = centerShape.geometry.attributes.position.array;
+            const original = centerShape._originalPositions;
+            for (let i = 0; i < positions.length; i += 3) {
+                const ox = original[i], oy = original[i + 1], oz = original[i + 2];
+                const dist = Math.sqrt(ox * ox + oy * oy + oz * oz);
+                const noise = Math.sin(ox * 0.05 + t * 1.5) * Math.cos(oy * 0.05 + t * 1.2) * Math.sin(oz * 0.05 + t * 0.8);
+                const scale = 1 + noise * 0.15;
+                positions[i] = ox * scale;
+                positions[i + 1] = oy * scale;
+                positions[i + 2] = oz * scale;
             }
-            if (child.name === 'sparkles') {
-                child.rotation.y = elapsed * 0.01;
-                // Twinkle effect via opacity
-                child.material.opacity = 0.4 + Math.sin(elapsed * 1.5) * 0.15;
+            centerShape.geometry.attributes.position.needsUpdate = true;
+            centerShape.rotation.y = t * 0.15;
+            centerShape.rotation.x = Math.sin(t * 0.1) * 0.2;
+
+            if (centerShape._wire) {
+                centerShape._wire.rotation.y = -t * 0.05;
+            }
+        }
+
+        // DNA helix rotation
+        if (dnaGroup) {
+            dnaGroup.rotation.y = t * 0.2;
+            dnaGroup.position.y = Math.sin(t * 0.15) * 20;
+        }
+
+        // Orbiting spheres
+        orbitingSpheres.forEach(s => {
+            const angle = t * s._orbitSpeed + s._orbitOffset;
+            s.position.x = Math.cos(angle) * s._orbitRadius;
+            s.position.z = Math.sin(angle) * s._orbitRadius + Math.sin(angle * s._orbitTilt) * 30;
+            s.position.y = Math.sin(t * s._verticalSpeed + s._orbitOffset) * s._verticalRange;
+
+            const pulse = 1 + Math.sin(t * 2 + s._orbitOffset) * 0.1;
+            s.scale.set(pulse, pulse, pulse);
+        });
+
+        // Floating cubes
+        scene.children.forEach(child => {
+            if (child.name === 'floatingCube') {
+                child.rotation.x += child._rotSpeed.x;
+                child.rotation.y += child._rotSpeed.y;
+                child.rotation.z += child._rotSpeed.z;
+                child.position.y = child._baseY + Math.sin(t * child._floatSpeed + child._floatOffset) * 20;
+            }
+            if (child.name === 'particleField') {
+                child.rotation.y = t * 0.008;
             }
         });
 
         renderer.render(scene, camera);
     }
 
-    document.addEventListener('mousemove', (e) => {
+    document.addEventListener('mousemove', e => {
         mouseX = (e.clientX / window.innerWidth) * 2 - 1;
         mouseY = (e.clientY / window.innerHeight) * 2 - 1;
     });
@@ -475,35 +363,22 @@
     // ===================================
     const cursorDot = document.getElementById('cursorDot');
     const cursorRing = document.getElementById('cursorRing');
-    let cursorX = 0, cursorY = 0;
-    let ringX = 0, ringY = 0;
+    let cX = 0, cY = 0, rX = 0, rY = 0;
 
-    document.addEventListener('mousemove', (e) => {
-        cursorX = e.clientX;
-        cursorY = e.clientY;
-        cursorDot.style.left = cursorX + 'px';
-        cursorDot.style.top = cursorY + 'px';
+    document.addEventListener('mousemove', e => {
+        cX = e.clientX; cY = e.clientY;
+        cursorDot.style.left = cX + 'px'; cursorDot.style.top = cY + 'px';
     });
-
-    function animateCursor() {
-        ringX += (cursorX - ringX) * 0.15;
-        ringY += (cursorY - ringY) * 0.15;
-        cursorRing.style.left = ringX + 'px';
-        cursorRing.style.top = ringY + 'px';
-        requestAnimationFrame(animateCursor);
+    function animCursor() {
+        rX += (cX - rX) * 0.15; rY += (cY - rY) * 0.15;
+        cursorRing.style.left = rX + 'px'; cursorRing.style.top = rY + 'px';
+        requestAnimationFrame(animCursor);
     }
-    animateCursor();
+    animCursor();
 
-    const hoverTargets = document.querySelectorAll('a, button, input, select, .event-card, .stat-card, .checkbox-label');
-    hoverTargets.forEach(el => {
-        el.addEventListener('mouseenter', () => {
-            cursorDot.classList.add('hovering');
-            cursorRing.classList.add('hovering');
-        });
-        el.addEventListener('mouseleave', () => {
-            cursorDot.classList.remove('hovering');
-            cursorRing.classList.remove('hovering');
-        });
+    document.querySelectorAll('a, button, input, select, .event-card, .stat-card, .checkbox-label').forEach(el => {
+        el.addEventListener('mouseenter', () => { cursorDot.classList.add('hovering'); cursorRing.classList.add('hovering'); });
+        el.addEventListener('mouseleave', () => { cursorDot.classList.remove('hovering'); cursorRing.classList.remove('hovering'); });
     });
 
     // ===================================
@@ -516,136 +391,85 @@
     const mobileLinks = document.querySelectorAll('.mobile-link');
 
     window.addEventListener('scroll', () => {
-        if (window.scrollY > 80) {
-            navbar.classList.add('scrolled');
-        } else {
-            navbar.classList.remove('scrolled');
-        }
+        navbar.classList.toggle('scrolled', window.scrollY > 80);
         updateActiveNavLink();
     });
-
     navToggle.addEventListener('click', () => {
-        navToggle.classList.toggle('active');
-        mobileMenu.classList.toggle('active');
+        navToggle.classList.toggle('active'); mobileMenu.classList.toggle('active');
         document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
     });
-
-    mobileLinks.forEach(link => {
-        link.addEventListener('click', () => {
-            navToggle.classList.remove('active');
-            mobileMenu.classList.remove('active');
-            document.body.style.overflow = '';
-        });
-    });
-
+    mobileLinks.forEach(l => l.addEventListener('click', () => {
+        navToggle.classList.remove('active'); mobileMenu.classList.remove('active');
+        document.body.style.overflow = '';
+    }));
     function updateActiveNavLink() {
-        const sections = document.querySelectorAll('section[id], footer[id]');
         let current = '';
-        sections.forEach(section => {
-            const sectionTop = section.offsetTop - 200;
-            if (window.scrollY >= sectionTop) {
-                current = section.getAttribute('id');
-            }
-        });
-        navLinks.forEach(link => {
-            link.classList.remove('active');
-            if (link.getAttribute('data-section') === current) {
-                link.classList.add('active');
-            }
-        });
+        document.querySelectorAll('section[id], footer[id]').forEach(s => { if (window.scrollY >= s.offsetTop - 200) current = s.id; });
+        navLinks.forEach(l => { l.classList.toggle('active', l.dataset.section === current); });
     }
 
     // ===================================
-    // 5. COUNTDOWN TIMER
+    // 5. COUNTDOWN
     // ===================================
     const eventDate = new Date('2026-04-10T09:00:00+05:30').getTime();
-
     function updateCountdown() {
-        const now = new Date().getTime();
-        const diff = eventDate - now;
-        if (diff <= 0) {
-            document.getElementById('countDays').textContent = '00';
-            document.getElementById('countHours').textContent = '00';
-            document.getElementById('countMinutes').textContent = '00';
-            document.getElementById('countSeconds').textContent = '00';
-            return;
-        }
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        document.getElementById('countDays').textContent = String(days).padStart(2, '0');
-        document.getElementById('countHours').textContent = String(hours).padStart(2, '0');
-        document.getElementById('countMinutes').textContent = String(minutes).padStart(2, '0');
-        document.getElementById('countSeconds').textContent = String(seconds).padStart(2, '0');
+        const diff = eventDate - Date.now();
+        if (diff <= 0) { ['countDays', 'countHours', 'countMinutes', 'countSeconds'].forEach(id => document.getElementById(id).textContent = '00'); return; }
+        document.getElementById('countDays').textContent = String(Math.floor(diff / 864e5)).padStart(2, '0');
+        document.getElementById('countHours').textContent = String(Math.floor((diff % 864e5) / 36e5)).padStart(2, '0');
+        document.getElementById('countMinutes').textContent = String(Math.floor((diff % 36e5) / 6e4)).padStart(2, '0');
+        document.getElementById('countSeconds').textContent = String(Math.floor((diff % 6e4) / 1e3)).padStart(2, '0');
     }
-    updateCountdown();
-    setInterval(updateCountdown, 1000);
+    updateCountdown(); setInterval(updateCountdown, 1000);
 
     // ===================================
-    // 6. SCROLL REVEAL
+    // 6. 3D SCROLL REVEAL
     // ===================================
     function initScrollReveal() {
-        const reveals = document.querySelectorAll('.reveal-up, .reveal-left, .reveal-right');
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const delay = parseFloat(entry.target.getAttribute('data-delay') || 0);
-                    setTimeout(() => { entry.target.classList.add('revealed'); }, delay * 1000);
-                    observer.unobserve(entry.target);
+        const els = document.querySelectorAll('.reveal-up, .reveal-left, .reveal-right');
+        const obs = new IntersectionObserver(entries => {
+            entries.forEach(e => {
+                if (e.isIntersecting) {
+                    const d = parseFloat(e.target.dataset.delay || 0);
+                    setTimeout(() => e.target.classList.add('revealed'), d * 1000);
+                    obs.unobserve(e.target);
                 }
             });
         }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
-        reveals.forEach(el => observer.observe(el));
+        els.forEach(el => obs.observe(el));
     }
-
     function triggerHeroReveal() {
-        const heroReveals = document.querySelectorAll('.hero .reveal-up');
-        heroReveals.forEach(el => {
-            const delay = parseFloat(el.getAttribute('data-delay') || 0);
-            setTimeout(() => { el.classList.add('revealed'); }, delay * 1000 + 200);
+        document.querySelectorAll('.hero .reveal-up').forEach(el => {
+            const d = parseFloat(el.dataset.delay || 0);
+            setTimeout(() => el.classList.add('revealed'), d * 1000 + 200);
         });
     }
 
     // ===================================
-    // 7. EVENT FILTERING
+    // 7-8. EVENT + SCHEDULE TABS
     // ===================================
-    const eventTabs = document.querySelectorAll('.event-tab');
-    const eventCards = document.querySelectorAll('.event-card');
-    eventTabs.forEach(tab => {
+    document.querySelectorAll('.event-tab').forEach(tab => {
         tab.addEventListener('click', () => {
-            eventTabs.forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.event-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-            const category = tab.getAttribute('data-category');
-            eventCards.forEach(card => {
-                if (category === 'all' || card.getAttribute('data-category') === category) {
-                    card.classList.remove('hidden-card');
-                    card.style.animation = 'fadeInUp 0.5s ease forwards';
-                } else {
-                    card.classList.add('hidden-card');
-                }
+            const cat = tab.dataset.category;
+            document.querySelectorAll('.event-card').forEach(c => {
+                if (cat === 'all' || c.dataset.category === cat) { c.classList.remove('hidden-card'); c.style.animation = 'fadeInUp 0.5s ease forwards'; }
+                else c.classList.add('hidden-card');
             });
         });
     });
-
-    // ===================================
-    // 8. SCHEDULE TABS
-    // ===================================
-    const scheduleTabs = document.querySelectorAll('.schedule-tab');
-    const timelineDays = document.querySelectorAll('.timeline-day');
-    scheduleTabs.forEach(tab => {
+    document.querySelectorAll('.schedule-tab').forEach(tab => {
         tab.addEventListener('click', () => {
-            scheduleTabs.forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.schedule-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-            const day = tab.getAttribute('data-day');
-            timelineDays.forEach(d => {
+            document.querySelectorAll('.timeline-day').forEach(d => {
                 d.classList.remove('active');
-                if (d.getAttribute('data-day') === day) {
+                if (d.dataset.day === tab.dataset.day) {
                     d.classList.add('active');
-                    const items = d.querySelectorAll('.reveal-left, .reveal-right');
-                    items.forEach((item, i) => {
+                    d.querySelectorAll('.reveal-left, .reveal-right').forEach((item, i) => {
                         item.classList.remove('revealed');
-                        setTimeout(() => { item.classList.add('revealed'); }, i * 100 + 100);
+                        setTimeout(() => item.classList.add('revealed'), i * 100 + 100);
                     });
                 }
             });
@@ -653,47 +477,29 @@
     });
 
     // ===================================
-    // 9. REGISTRATION FORM
+    // 9. REGISTRATION
     // ===================================
-    const registerForm = document.getElementById('registerForm');
-    const successModal = document.getElementById('successModal');
-    const modalClose = document.getElementById('modalClose');
-
-    registerForm.addEventListener('submit', (e) => {
+    const form = document.getElementById('registerForm');
+    const modal = document.getElementById('successModal');
+    const modalBtn = document.getElementById('modalClose');
+    form.addEventListener('submit', e => {
         e.preventDefault();
-        const name = document.getElementById('regName').value.trim();
-        const email = document.getElementById('regEmail').value.trim();
-        const phone = document.getElementById('regPhone').value.trim();
-        const college = document.getElementById('regCollege').value.trim();
-        const year = document.getElementById('regYear').value;
-        const dept = document.getElementById('regDept').value.trim();
-        if (!name || !email || !phone || !college || !year || !dept) return;
-        const checkedEvents = registerForm.querySelectorAll('input[name="events"]:checked');
-        if (checkedEvents.length === 0) {
-            alert('Please select at least one event!');
-            return;
-        }
-        successModal.classList.add('active');
-        registerForm.reset();
+        const fields = ['regName', 'regEmail', 'regPhone', 'regCollege', 'regYear', 'regDept'];
+        if (fields.some(id => !document.getElementById(id).value.trim())) return;
+        if (!form.querySelectorAll('input[name="events"]:checked').length) { alert('Please select at least one event!'); return; }
+        modal.classList.add('active'); form.reset();
     });
-
-    modalClose.addEventListener('click', () => { successModal.classList.remove('active'); });
-    successModal.addEventListener('click', (e) => {
-        if (e.target === successModal) successModal.classList.remove('active');
-    });
+    modalBtn.addEventListener('click', () => modal.classList.remove('active'));
+    modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('active'); });
 
     // ===================================
     // 10. SMOOTH SCROLL
     // ===================================
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+        a.addEventListener('click', function (e) {
             e.preventDefault();
             const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                const offset = 80;
-                const position = target.getBoundingClientRect().top + window.scrollY - offset;
-                window.scrollTo({ top: position, behavior: 'smooth' });
-            }
+            if (target) window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
         });
     });
 
@@ -701,29 +507,20 @@
     // 11. PARALLAX
     // ===================================
     window.addEventListener('scroll', () => {
-        const scrollY = window.scrollY;
+        const s = window.scrollY;
         const hero = document.querySelector('.hero-content');
-        if (hero && scrollY < window.innerHeight) {
-            hero.style.transform = `translateY(${scrollY * 0.3}px)`;
-            hero.style.opacity = 1 - scrollY / (window.innerHeight * 0.8);
+        if (hero && s < window.innerHeight) {
+            hero.style.transform = `translateY(${s * 0.3}px)`;
+            hero.style.opacity = 1 - s / (window.innerHeight * 0.8);
         }
     });
 
     // ===================================
-    // 12. LUCIDE ICONS
+    // 12-13. ICONS + KEYFRAMES
     // ===================================
-    if (typeof lucide !== 'undefined') { lucide.createIcons(); }
-
-    // ===================================
-    // 13. KEYFRAME
-    // ===================================
-    const styleSheet = document.createElement('style');
-    styleSheet.textContent = `
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    `;
-    document.head.appendChild(styleSheet);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    const ss = document.createElement('style');
+    ss.textContent = `@keyframes fadeInUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }`;
+    document.head.appendChild(ss);
 
 })();
